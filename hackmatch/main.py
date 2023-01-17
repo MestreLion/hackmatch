@@ -3,60 +3,65 @@
 # License: GPLv3 or later, at your choice. See <http://www.gnu.org/licenses/gpl>
 
 """
-Main module
+Exapunks HACK*MATCH Bot
 """
 
+import argparse
 import logging
 import sys
-import time
 import typing as t
 
+from . import config as c
+from . import logic
 from . import util as u
-from . import gui
-
-STEAM_URI = 'steam://rungameid/716490'
 
 log = logging.getLogger(__name__)
 
 
-def bot(argv: t.Optional[t.List[str]] = None):
-    logging.basicConfig(level=logging.INFO, format='%(levelname)-7.7s: %(message)s')
+def parse_args(argv: t.Optional[t.List[str]] = None):
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        epilog=c.COPYRIGHT,
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-q', '--quiet',
+                       dest='loglevel',
+                       const=logging.WARNING,
+                       default=logging.INFO,
+                       action="store_const",
+                       help="Suppress informative messages.")
 
-    try:
-        window = gui.activate_window('EXAPUNKS')
-        bbox = gui.get_window_bbox(window)
-        log.info("Window: %s", window)
-    except u.HMError as e:
-        log.warning(e)
-        bbox = None
-        log.info("Desktop: %s", gui.get_screen_size())
+    group.add_argument('-v', '--verbose',
+                       dest='loglevel',
+                       const=logging.DEBUG,
+                       action="store_const",
+                       help="Verbose mode, output extra info.")
 
-    img = gui.take_screenshot(bbox)
-    img.show()
-
-    benchmark(gui.take_screenshot, bbox)
-
-
-def benchmark(func, *args, count=100, **kwargs):
-    t0 = time.time()
-    for _ in range(count):
-        func(*args, **kwargs)
-    t1 = time.time() - t0
-    fps = count / t1
-    avg = 1000 * t1 / count
-    print(f'{fps:6.2f} FPS, {avg:5.1f}ms avg: {func.__name__}')
+    args = parser.parse_args(argv)
+    args.debug = args.loglevel == logging.DEBUG
+    return args
 
 
 def main(argv: t.Optional[t.List[str]] = None):
     """Main CLI entry point"""
     try:
-        sys.exit(bot(argv))
+        args = parse_args(argv)
+        logging.basicConfig(
+            level=args.loglevel,
+            datefmt="%Y-%m-%d %H:%M:%S",
+            format='[%(asctime)s %(levelname)-6.6s] %(name)-15s: %(message)s'
+        )
+        log.debug(args)
+        sys.exit(logic.bot())
     except u.HMError as err:
         log.error(err)
         sys.exit(1)
     except Exception as err:
-        log.critical(err, exc_info=True)
+        log.exception(err)
         sys.exit(1)
     except KeyboardInterrupt:
         log.info("Stopping...")
-        sys.exit(2)  # signal.SIGINT.value
+        import signal, os
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+        os.kill(os.getpid(), signal.SIGINT)

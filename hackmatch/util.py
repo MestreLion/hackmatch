@@ -41,6 +41,16 @@ class FrameRateLimiter:
         return self._t0 - t0
 
 
+class Timer:
+    def __init__(self, secs):
+        self.start = time.perf_counter()
+        self.secs = secs
+
+    @property
+    def expired(self):
+        return time.perf_counter() - self.start > self.secs
+
+
 def open_file(path):
     if platform.system() == 'Windows':   # Windows
         os.startfile(path)
@@ -48,3 +58,13 @@ def open_file(path):
         subprocess.run(('open', path), shell=True)
     else:                                # linux variants
         subprocess.run(('xdg-open', path))
+
+
+def benchmark(func, *args, count=100, **kwargs):
+    t0 = time.time()
+    for _ in range(count):
+        func(*args, **kwargs)
+    t1 = time.time() - t0
+    fps = count / t1
+    avg = 1000 * t1 / count
+    print(f'{fps:6.2f} FPS, {avg:5.1f}ms avg: {func.__name__}')

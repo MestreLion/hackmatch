@@ -6,9 +6,6 @@
     Convenience launcher. Allow running as `python3 -m hackmatch`
 """
 
-import sys
-
 from . import main
 
-
-sys.exit(main.main())
+main.main()
