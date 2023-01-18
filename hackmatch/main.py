@@ -53,9 +53,10 @@ def main(argv: t.Optional[t.List[str]] = None):
             format='[%(asctime)s %(levelname)-6.6s] %(name)-15s: %(message)s'
         )
         log.debug(args)
+        c.init(args)
         sys.exit(logic.bot())
     except u.HMError as err:
-        log.error(err)
+        log.critical(err)
         sys.exit(1)
     except Exception as err:
         log.exception(err)

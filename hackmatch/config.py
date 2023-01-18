@@ -14,16 +14,21 @@ import re
 import sys
 import typing as t
 
-# Paths
-if sys.platform == "win32":
-    SAVE_PREFIX = "~/Documents/My Games"
-elif sys.platform == "darwin":
-    SAVE_PREFIX = "~/Library/Application Support"
-else:  # linux
-    SAVE_PREFIX = os.environ.get("XDG_DATA_HOME") or "~/.local/share"
+# Windows
+if sys.platform == 'win32':
+    SAVE_PATH_PREFIX = "~/Documents/My Games"
 
-GAME_CONFIG_FMT = str(pathlib.Path(SAVE_PREFIX,
-                                   "EXAPUNKS/{steam_user_id}/config.cfg").expanduser())
+# macOS
+elif sys.platform == 'darwin':
+    SAVE_PATH_PREFIX = "~/Library/Application Support"
+
+# Linux and variants
+else:
+    SAVE_PATH_PREFIX = os.environ.get("XDG_DATA_HOME") or "~/.local/share"
+
+# Paths
+SAVE_PATH_SUFFIX = "EXAPUNKS/{steam_user_id}/config.cfg"
+GAME_CONFIG_PATH = ""  # to be determined at run-time by init()
 
 # Steam
 STEAM_LAUNCH_URI = "steam://rungameid/716490"
@@ -34,7 +39,8 @@ WINDOW_TITLE = "EXAPUNKS"
 WINDOW_SIZE = (1920, 1080)
 
 # Game Settings
-GAME_SETTINGS = {
+GameSettings: 't.TypeAlias' = t.Dict[str, t.Union[str, int, bool]]
+GAME_SETTINGS: GameSettings = {
     'Resolution.Width': WINDOW_SIZE[0],
     'Resolution.Height': WINDOW_SIZE[1],
     'EnableCrtDistortion': False,
@@ -55,7 +61,15 @@ log = logging.getLogger(__name__)
 config: t.Dict[str, t.Any] = {
     "game_launch_timeout": 60,
     "steam_user_name": "",
+    "steam_user_id": 0,
 }
+
+
+def init(_args):
+    global GAME_CONFIG_PATH
+    if not config['steam_user_id']:
+        config['steam_user_id'] = get_steam_user_id(config["steam_user_name"])
+    GAME_CONFIG_PATH = get_game_config_path(config['steam_user_id'])
 
 
 def get_steam_user_id(steam_user_name: str) -> int:
@@ -68,12 +82,12 @@ def get_steam_user_id(steam_user_name: str) -> int:
     return int(json.loads(data.group('json'))['steamid'])
 
 
-def get_game_config_path():
-    user_id = get_steam_user_id(config["steam_user_name"])
-    path = GAME_CONFIG_FMT.format(steam_user_id=(user_id or "*"))
-    if user_id:
+def get_game_config_path(steam_user_id: int = 0):
+    fmt = pathlib.Path(SAVE_PATH_PREFIX, SAVE_PATH_SUFFIX).expanduser()
+    path = str(fmt).format(steam_user_id=(steam_user_id or "*"))
+    if steam_user_id:
         return path
     try:
         return next(pathlib.Path('/').glob(path[1:]))
     except StopIteration:
-        raise FileNotFoundError("Could not find the game config file: %s", path)
+        raise FileNotFoundError("Could not find the game config: %s", path)

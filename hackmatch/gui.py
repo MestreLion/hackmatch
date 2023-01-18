@@ -38,9 +38,8 @@ class GameWindow:
         if not windows:
             raise WindowNotFoundError("No window titled %r, is the game running?", title)
         if len(windows) > 1:
-            raise u.HMError("More than one window titled %r: %s", title, windows)
+            log.warning("More than one window titled %r: %s", title, windows)
         window = cls(windows[0])
-        log.info("Game window: %s", window)
         return window
 
     @property
@@ -52,14 +51,15 @@ class GameWindow:
     def size(self) -> Size:
         return tuple(self.window.size)
 
-    def activate(self) -> bool:
+    def activate(self, reposition=True) -> bool:
         if self.window.isActive or self.window.activate(wait=True):
+            if reposition:
+                self.window.moveTo(0, 0)
             return True
         log.warning("Failed to activate window %s", self.window)
         return False
 
     def take_screenshot(self) -> PIL.Image:
-        self.activate()
         bbox = self.bbox
         log.debug("Taking window screenshot: %s", bbox)
         return PIL.ImageGrab.grab(bbox, xdisplay="")
@@ -82,8 +82,7 @@ def _patch_ewmh():
     import pywinctl
 
     def setactivewindow(self, win):
-        wid = self.getActiveWindow().id
-        self._setProperty('_NET_ACTIVE_WINDOW', [1, ewmh.ewmh.X.CurrentTime, wid], win)
+        self._setProperty('_NET_ACTIVE_WINDOW', [2, ewmh.ewmh.X.CurrentTime, win.id], win)
 
     # noinspection PyProtectedMember
     obj = pywinctl._pywinctl_linux.EWMH

@@ -7,12 +7,28 @@ General utilities
 """
 
 import logging
-import platform
 import os
 import subprocess
+import sys
 import time
 
 log = logging.getLogger(__name__)
+
+
+# Windows
+if sys.platform == 'win32':
+    def _run_file(path):
+        os.startfile(path)
+
+# macOS
+elif sys.platform == 'darwin':
+    def _run_file(path):
+        subprocess.run(('open', path), capture_output=True, check=True, shell=True)
+
+# Linux and variants
+else:
+    def _run_file(path):
+        subprocess.run(('xdg-open', path), capture_output=True, check=True)
 
 
 class HMError(Exception):
@@ -21,9 +37,14 @@ class HMError(Exception):
     All modules in this package raise this (or a subclass) for all
     explicitly raised, business-logic, expected or handled exceptions
     """
-    def __init__(self, msg: object = "", *args, errno: int = 0):
+    def __init__(self, msg: object = "", *args, errno: int = 0, e: Exception = None):
         super().__init__((str(msg) % args) if args else msg)
         self.errno = errno
+        self.e = e
+
+
+class RunFileError(HMError):
+    """Exception for run_file() errors"""
 
 
 class FrameRateLimiter:
@@ -51,15 +72,6 @@ class Timer:
         return time.perf_counter() - self.start > self.secs
 
 
-def open_file(path):
-    if platform.system() == 'Windows':   # Windows
-        os.startfile(path)
-    elif platform.system() == 'Darwin':  # macOS
-        subprocess.run(('open', path), shell=True)
-    else:                                # linux variants
-        subprocess.run(('xdg-open', path))
-
-
 def benchmark(func, *args, count=100, **kwargs):
     t0 = time.time()
     for _ in range(count):
@@ -68,3 +80,10 @@ def benchmark(func, *args, count=100, **kwargs):
     fps = count / t1
     avg = 1000 * t1 / count
     print(f'{fps:6.2f} FPS, {avg:5.1f}ms avg: {func.__name__}')
+
+
+def run_file(path):
+    try:
+        _run_file(path)
+    except (NotImplementedError, subprocess.CalledProcessError) as e:
+        raise RunFileError("%s: %s", e.__class__.__name__, e, e=e)
