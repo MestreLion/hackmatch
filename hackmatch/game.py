@@ -12,7 +12,7 @@ import typing as t
 from . import config as c
 from . import util as u
 
-RawSettings: 't.TypeAlias' = t.Dict[str, str]
+RawSettings: u.TypeAlias = t.Dict[str, str]
 
 log = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ def read_settings() -> RawSettings:
     log.info("Read game settings: %s", c.GAME_CONFIG_PATH)
     with open(c.GAME_CONFIG_PATH) as f:
         settings = f.readlines()
-    data = {k.strip(): v.strip() for k, v in (line.split('=') for line in settings)}
+    data = {k.strip(): v.strip() for k, v in (line.split("=") for line in settings)}
     log.debug("Parsed game settings: %s", data)
     return data
 
@@ -37,11 +37,13 @@ def read_settings() -> RawSettings:
 def write_settings(data: c.GameSettings) -> None:
     log.info("Write game settings: %s", c.GAME_CONFIG_PATH)
     text = "\n".join(f"{k} = {v}" for k, v in data.items())
-    with open(c.GAME_CONFIG_PATH, 'w') as f:
-        f.write(text + '\n')
+    with open(c.GAME_CONFIG_PATH, "w") as f:
+        f.write(text + "\n")
 
 
-def check_settings(data: t.Optional[c.GameSettings] = None, raise_on_error=False) -> bool:
+def check_settings(
+    data: t.Optional[c.GameSettings] = None, raise_on_error: bool = False
+) -> bool:
     if data is None:
         data = read_settings()
     diff = {k: (data[k], v) for k, v in c.GAME_SETTINGS.items() if not str(v) == data[k]}
@@ -49,9 +51,10 @@ def check_settings(data: t.Optional[c.GameSettings] = None, raise_on_error=False
         return True
     if raise_on_error:
         raise u.HMError("Incorrect game settings")
-    log.warning("Incorrect game settings: \n\t%s",
-                "\n\t".join((f"{k}: {v1}, expected {v2}"
-                             for k, (v1, v2) in diff.items())))
+    log.warning(
+        "Incorrect game settings: \n\t%s",
+        "\n\t".join((f"{k}: {v1}, expected {v2}" for k, (v1, v2) in diff.items())),
+    )
     return False
 
 
@@ -64,3 +67,4 @@ def change_settings(data: t.Optional[c.GameSettings] = None) -> bool:
         return False
     log.debug("Updated game settings: %s", data)
     write_settings(data)
+    return True

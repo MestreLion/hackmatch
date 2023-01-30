@@ -3,7 +3,7 @@
 # License: GPLv3 or later, at your choice. See <http://www.gnu.org/licenses/gpl>
 
 """
-    Convenience launcher. Allow running as `python3 -m hackmatch`
+Convenience launcher. Allow running as `python3 -m hackmatch`
 """
 
 from . import main

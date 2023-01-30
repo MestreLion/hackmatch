@@ -14,12 +14,14 @@ import re
 import sys
 import typing as t
 
+from . import util as u
+
 # Windows
-if sys.platform == 'win32':
+if sys.platform == "win32":
     SAVE_PATH_PREFIX = "~/Documents/My Games"
 
 # macOS
-elif sys.platform == 'darwin':
+elif sys.platform == "darwin":
     SAVE_PATH_PREFIX = "~/Library/Application Support"
 
 # Linux and variants
@@ -39,11 +41,11 @@ WINDOW_TITLE = "EXAPUNKS"
 WINDOW_SIZE = (1920, 1080)
 
 # Game Settings
-GameSettings: 't.TypeAlias' = t.Dict[str, t.Union[str, int, bool]]
+GameSettings: u.TypeAlias = t.Dict[str, t.Union[str, int, bool]]
 GAME_SETTINGS: GameSettings = {
-    'Resolution.Width': WINDOW_SIZE[0],
-    'Resolution.Height': WINDOW_SIZE[1],
-    'EnableCrtDistortion': False,
+    "Resolution.Width": WINDOW_SIZE[0],
+    "Resolution.Height": WINDOW_SIZE[1],
+    "EnableCrtDistortion": False,
 }
 
 # Game logic
@@ -65,11 +67,11 @@ config: t.Dict[str, t.Any] = {
 }
 
 
-def init(_args):
+def init(_args: object) -> None:
     global GAME_CONFIG_PATH
-    if not config['steam_user_id']:
-        config['steam_user_id'] = get_steam_user_id(config["steam_user_name"])
-    GAME_CONFIG_PATH = get_game_config_path(config['steam_user_id'])
+    if not config["steam_user_id"]:
+        config["steam_user_id"] = get_steam_user_id(config["steam_user_name"])
+    GAME_CONFIG_PATH = get_game_config_path(config["steam_user_id"])
 
 
 def get_steam_user_id(steam_user_name: str) -> int:
@@ -79,15 +81,15 @@ def get_steam_user_id(steam_user_name: str) -> int:
     data = re.search(r"^\s*g_rgProfileData\s*=\s*(?P<json>.*);\s*$", html, re.MULTILINE)
     if not data:
         return 0
-    return int(json.loads(data.group('json'))['steamid'])
+    return int(json.loads(data.group("json"))["steamid"])
 
 
-def get_game_config_path(steam_user_id: int = 0):
+def get_game_config_path(steam_user_id: int = 0) -> str:
     fmt = pathlib.Path(SAVE_PATH_PREFIX, SAVE_PATH_SUFFIX).expanduser()
     path = str(fmt).format(steam_user_id=(steam_user_id or "*"))
     if steam_user_id:
         return path
     try:
-        return next(pathlib.Path('/').glob(path[1:]))
+        return str(next(pathlib.Path("/").glob(path[1:])))
     except StopIteration:
         raise FileNotFoundError("Could not find the game config: %s", path)

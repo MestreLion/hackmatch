@@ -29,11 +29,11 @@ class GameWindow:
     def __init__(self, window: pywinctl.Window):
         self.window: pywinctl.Window = window
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.window)
 
     @classmethod
-    def find_by_title(cls, title: str) -> 'GameWindow':
+    def find_by_title(cls, title: str) -> "GameWindow":
         windows = pywinctl.getWindowsWithTitle(title)
         if not windows:
             raise WindowNotFoundError("No window titled %r, is the game running?", title)
@@ -49,9 +49,9 @@ class GameWindow:
 
     @property
     def size(self) -> Size:
-        return tuple(self.window.size)
+        return self.window.size
 
-    def activate(self, reposition=True) -> bool:
+    def activate(self, reposition: bool = True) -> bool:
         if self.window.isActive or self.window.activate(wait=True):
             if reposition:
                 self.window.moveTo(0, 0)
@@ -64,7 +64,7 @@ class GameWindow:
         log.debug("Taking window screenshot: %s", bbox)
         return PIL.ImageGrab.grab(bbox, xdisplay="")
 
-    def close(self):
+    def close(self) -> None:
         log.info("Closing game")
         self.window.close()
 
@@ -73,20 +73,20 @@ def get_screen_size() -> Size:
     return pywinctl.getScreenSize()
 
 
-def _patch_ewmh():
+# Not needed in pywinctl > 0.0.42
+def _patch_ewmh() -> None:
     import sys
+
     if not sys.platform == "linux":
         return
     import types
-    import ewmh
-    import pywinctl
-
-    def setactivewindow(self, win):
-        self._setProperty('_NET_ACTIVE_WINDOW', [2, ewmh.ewmh.X.CurrentTime, win.id], win)
 
     # noinspection PyProtectedMember
-    obj = pywinctl._pywinctl_linux.EWMH
-    obj.setActiveWindow = types.MethodType(setactivewindow, obj)
+    from pywinctl._pywinctl_linux import EWMH as EWMH
 
+    def setactivewindow(self: EWMH, win: t.Any) -> None:
+        self._setProperty("_NET_ACTIVE_WINDOW", [2, 0, win.id], win)
+
+    EWMH.setActiveWindow = types.MethodType(setactivewindow, EWMH)
 
 _patch_ewmh()

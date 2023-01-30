@@ -18,43 +18,49 @@ from . import util as u
 log = logging.getLogger(__name__)
 
 
-def parse_args(argv: t.Optional[t.List[str]] = None):
+def parse_args(argv: t.Optional[t.List[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=__doc__,
         epilog=c.COPYRIGHT,
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     group = parser.add_mutually_exclusive_group()
-    group.add_argument('-q', '--quiet',
-                       dest='loglevel',
-                       const=logging.WARNING,
-                       default=logging.INFO,
-                       action="store_const",
-                       help="Suppress informative messages.")
+    group.add_argument(
+        "-q",
+        "--quiet",
+        dest="loglevel",
+        const=logging.WARNING,
+        default=logging.INFO,
+        action="store_const",
+        help="Suppress informative messages.",
+    )
 
-    group.add_argument('-v', '--verbose',
-                       dest='loglevel',
-                       const=logging.DEBUG,
-                       action="store_const",
-                       help="Verbose mode, output extra info.")
+    group.add_argument(
+        "-v",
+        "--verbose",
+        dest="loglevel",
+        const=logging.DEBUG,
+        action="store_const",
+        help="Verbose mode, output extra info.",
+    )
 
     args = parser.parse_args(argv)
     args.debug = args.loglevel == logging.DEBUG
     return args
 
 
-def main(argv: t.Optional[t.List[str]] = None):
+def main(argv: t.Optional[t.List[str]] = None) -> None:
     """Main CLI entry point"""
     try:
         args = parse_args(argv)
         logging.basicConfig(
             level=args.loglevel,
             datefmt="%Y-%m-%d %H:%M:%S",
-            format='[%(asctime)s %(levelname)-6.6s] %(name)-15s: %(message)s'
+            format="[%(asctime)s %(levelname)-6.6s] %(name)-15s: %(message)s",
         )
         log.debug(args)
         c.init(args)
-        sys.exit(logic.bot())
+        logic.bot()
     except u.HMError as err:
         log.critical(err)
         sys.exit(1)
@@ -62,7 +68,8 @@ def main(argv: t.Optional[t.List[str]] = None):
         log.exception(err)
         sys.exit(1)
     except KeyboardInterrupt:
-        log.info("Stopping...")
         import signal, os
+
+        log.info("Stopping...")
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         os.kill(os.getpid(), signal.SIGINT)

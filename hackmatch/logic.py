@@ -23,19 +23,20 @@ def bot():
     settings = game.read_settings()
     if not game.check_settings(settings):
         window = get_game_window(launch=False, activate=False)
-        if window:
+        if window is not None:
             window.close()
             time.sleep(1)  # so arbitrary!
         game.change_settings()
 
-    window: gui.GameWindow = get_game_window()
+    window = get_game_window()
+    assert window is not None
     log.info("Game window: %s", window)
 
     board = ai.Board.from_image(window.take_screenshot())
     board.solve()
 
 
-def get_game_window(launch=True, activate=True) -> t.Optional[gui.GameWindow]:
+def get_game_window(launch: bool = True, activate: bool = True) -> t.Optional[gui.GameWindow]:
     """Get the game window, launching it if needed"""
     launch_timer: t.Optional[u.Timer] = None
     while True:
@@ -43,17 +44,20 @@ def get_game_window(launch=True, activate=True) -> t.Optional[gui.GameWindow]:
             window = gui.GameWindow.find_by_title(c.WINDOW_TITLE)
         except gui.WindowNotFoundError:
             if not launch:
-                return
+                return None
         else:
             if activate:
                 window.activate()
             return window
         if not launch_timer:
             game.launch()
-            launch_timer = u.Timer(c.config['game_launch_timeout'])
-            log.info("Game launched, waiting %s seconds for game window",
-                     c.config['game_launch_timeout'])
+            launch_timer = u.Timer(c.config["game_launch_timeout"])
+            log.info(
+                "Game launched, waiting %s seconds for game window",
+                c.config["game_launch_timeout"],
+            )
         elif launch_timer.expired:
-            raise u.HMError("Game did not start after %s seconds",
-                            c.config['game_launch_timeout'])
+            raise u.HMError(
+                "Game did not start after %s seconds", c.config["game_launch_timeout"]
+            )
         time.sleep(1)
