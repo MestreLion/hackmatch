@@ -1,4 +1,0 @@
-ewmh ; sys_platform == "linux"
-Pillow
-PyAutoGUI
-PyWinCtl

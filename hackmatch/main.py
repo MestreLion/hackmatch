@@ -1,10 +1,11 @@
 # This file is part of HackMatch, see <https://github.com/MestreLion/hackmatch>
 # Copyright (C) 2023 Rodrigo Silva (MestreLion) <linux@rodrigosilva.com>
 # License: GPLv3 or later, at your choice. See <http://www.gnu.org/licenses/gpl>
-
 """
 Exapunks HACK*MATCH Bot
 """
+
+__version__ = "0.0.1"
 
 import argparse
 import logging

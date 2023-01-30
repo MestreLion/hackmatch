@@ -1,4 +1,5 @@
 test*
+requirements.txt
 
 ### Project ###
 unrar/*.tar.gz
