@@ -5,6 +5,7 @@
 """
 General utilities
 """
+import enum
 import logging
 import os
 import subprocess
@@ -56,6 +57,19 @@ class HMError(Exception):
 
 class RunFileError(HMError):
     """Exception for run_file() errors"""
+
+
+# For value-based Enum.___contains__() alternatives in Python < 3.12,
+# see https://stackoverflow.com/q/43634618/624066
+# - return isinstance(item, cls) or any(item == i.value for i in cls)
+# - return item in set(i.value for i in cls) | set (cls)  # caching sets
+Enum = enum.Enum
+
+
+class BytesEnum(bytes, enum.Enum):
+    @classmethod
+    def match(cls, value: bytes) -> "BytesEnum":
+        return next((item for item in cls if item == value), cls(b""))
 
 
 class FrameRateLimiter:
