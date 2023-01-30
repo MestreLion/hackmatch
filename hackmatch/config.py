@@ -61,6 +61,7 @@ License: GPLv3 or later, at your choice. See <http://www.gnu.org/licenses/gpl>
 log = logging.getLogger(__name__)
 
 config: t.Dict[str, t.Any] = {
+    "bot_fps": 20,
     "game_launch_timeout": 60,
     "steam_user_name": "",
     "steam_user_id": 0,

@@ -12,13 +12,28 @@ import typing as t
 import PIL.Image, PIL.ImageGrab
 import pywinctl
 
+from . import ai
 from . import util as u
 
 
+BBox: u.TypeAlias = t.Tuple[int, int, int, int]
+Size: u.TypeAlias = t.Tuple[int, int]
+Image: u.TypeAlias = PIL.Image.Image
+Window: u.TypeAlias = pywinctl.Window
+
 log = logging.getLogger(__name__)
 
-BBox: 't.TypeAlias' = t.Tuple[int, int, int, int]
-Size: 't.TypeAlias' = t.Tuple[int, int]
+
+class Block(u.BytesEnum):
+    EMPTY = b""
+    YELLOW = b"a"
+    GREEN = b"g"
+    RED = b"r"
+    PINK = b"p"
+    BLUE = b"b"
+
+    def to_ai(self) -> ai.Block:
+        return self.name[0]
 
 
 class WindowNotFoundError(u.HMError):
@@ -26,8 +41,9 @@ class WindowNotFoundError(u.HMError):
 
 
 class GameWindow:
-    def __init__(self, window: pywinctl.Window):
-        self.window: pywinctl.Window = window
+    def __init__(self, window: Window):
+        self.window: Window = window
+        self.offset: t.List[int] = [0, 0]
 
     def __str__(self) -> str:
         return str(self.window)
@@ -59,14 +75,27 @@ class GameWindow:
         log.warning("Failed to activate window %s", self.window)
         return False
 
-    def take_screenshot(self) -> PIL.Image:
-        bbox = self.bbox
+    def take_screenshot(self) -> Image:
+        bbox: BBox = self.bbox
         log.debug("Taking window screenshot: %s", bbox)
         return PIL.ImageGrab.grab(bbox, xdisplay="")
 
     def close(self) -> None:
         log.info("Closing game")
         self.window.close()
+
+    def to_board(self) -> ai.Board:
+        board = ai.Board()
+        img: Image = self.take_screenshot()
+        y_offset: int = find_y_offset(img)
+        return board
+
+    def apply_moves(self, moves: t.List[ai.Move]) -> None:
+        ...
+
+
+def find_y_offset(img: Image) -> int:
+    return 0
 
 
 def get_screen_size() -> Size:
@@ -88,5 +117,6 @@ def _patch_ewmh() -> None:
         self._setProperty("_NET_ACTIVE_WINDOW", [2, 0, win.id], win)
 
     EWMH.setActiveWindow = types.MethodType(setactivewindow, EWMH)
+
 
 _patch_ewmh()

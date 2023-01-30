@@ -19,8 +19,9 @@ from . import gui
 log = logging.getLogger(__name__)
 
 
-def bot():
-    settings = game.read_settings()
+def bot() -> t.NoReturn:
+    window: t.Optional[gui.GameWindow]
+    settings: game.RawSettings = game.read_settings()
     if not game.check_settings(settings):
         window = get_game_window(launch=False, activate=False)
         if window is not None:
@@ -32,8 +33,16 @@ def bot():
     assert window is not None
     log.info("Game window: %s", window)
 
-    board = ai.Board.from_image(window.take_screenshot())
-    board.solve()
+    prev: t.Optional[ai.Board] = None
+    timer = u.FrameRateLimiter(c.config["bot_fps"])
+    while True:
+        board: ai.Board = window.to_board()
+        if board != prev:
+            log.info("Board: %s", board)
+            moves = board.solve()
+            log.info("Moves: %s", moves)
+            window.apply_moves(moves)
+        timer.sleep()
 
 
 def get_game_window(launch: bool = True, activate: bool = True) -> t.Optional[gui.GameWindow]:
