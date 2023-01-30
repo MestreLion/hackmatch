@@ -5,42 +5,53 @@
 """
 General utilities
 """
-
 import logging
 import os
 import subprocess
 import sys
 import time
+import typing as t
 
 log = logging.getLogger(__name__)
 
-
 # Windows
-if sys.platform == 'win32':
-    def _run_file(path):
+if sys.platform == "win32":
+
+    def _run_file(path: str) -> None:
         os.startfile(path)
 
+
 # macOS
-elif sys.platform == 'darwin':
-    def _run_file(path):
-        subprocess.run(('open', path), capture_output=True, check=True, shell=True)
+elif sys.platform == "darwin":
+
+    def _run_file(path: str) -> None:
+        subprocess.run(("open", path), capture_output=True, check=True, shell=True)
+
 
 # Linux and variants
 else:
-    def _run_file(path):
-        subprocess.run(('xdg-open', path), capture_output=True, check=True)
+
+    def _run_file(path: str) -> None:
+        subprocess.run(("xdg-open", path), capture_output=True, check=True)
 
 
 class HMError(Exception):
-    """Base class for custom exceptions, with errno and %-formatting for args.
+    """Base class for custom exceptions with a few extras on top of Exception.
+
+    - %-formatting for args, similar to logging.log()
+    - `errno` numeric attribute, similar to OSError
+    - `e` attribute for the original exception, when re-raising exceptions
 
     All modules in this package raise this (or a subclass) for all
     explicitly raised, business-logic, expected or handled exceptions
     """
-    def __init__(self, msg: object = "", *args, errno: int = 0, e: Exception = None):
+
+    def __init__(
+        self, msg: object = "", *args: object, errno: int = 0, e: t.Optional[Exception] = None
+    ):
         super().__init__((str(msg) % args) if args else msg)
-        self.errno = errno
-        self.e = e
+        self.errno: int = errno
+        self.e: t.Optional[Exception] = e
 
 
 class RunFileError(HMError):
@@ -50,39 +61,41 @@ class RunFileError(HMError):
 class FrameRateLimiter:
     def __init__(self, fps: float = 60):
         self.fps: float = fps
-        self._t0 = time.perf_counter()
+        self._start = time.perf_counter()
 
     def sleep(self) -> float:
-        t0 = self._t0
-        t1 = time.perf_counter()
-        diff = 1.0 / self.fps - (t1 - t0)
+        start = self._start
+        now = time.perf_counter()
+        diff = 1.0 / self.fps - (now - start)
         if diff > 0:
             time.sleep(diff)
-        self._t0 = time.perf_counter()
-        return self._t0 - t0
+        self._start = time.perf_counter()
+        return self._start - start
 
 
 class Timer:
-    def __init__(self, secs):
-        self.start = time.perf_counter()
-        self.secs = secs
+    def __init__(self, secs: float):
+        self.start: float = time.perf_counter()
+        self.secs: float = secs
 
     @property
-    def expired(self):
+    def expired(self) -> bool:
         return time.perf_counter() - self.start > self.secs
 
 
-def benchmark(func, *args, count=100, **kwargs):
-    t0 = time.time()
+def benchmark(
+    func: t.Callable, *args: object, count: int = 100, **kwargs: object  # type: ignore
+) -> None:
+    start = time.time()
     for _ in range(count):
         func(*args, **kwargs)
-    t1 = time.time() - t0
-    fps = count / t1
-    avg = 1000 * t1 / count
-    print(f'{fps:6.2f} FPS, {avg:5.1f}ms avg: {func.__name__}')
+    delta = time.time() - start
+    fps = count / delta
+    avg = 1000 * delta / count
+    print(f"{fps:6.2f} FPS, {avg:5.1f}ms avg: {func.__name__}")
 
 
-def run_file(path):
+def run_file(path: str) -> None:
     try:
         _run_file(path)
     except (NotImplementedError, subprocess.CalledProcessError) as e:
