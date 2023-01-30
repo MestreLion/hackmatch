@@ -13,6 +13,13 @@ import sys
 import time
 import typing as t
 
+if sys.version_info < (3, 10):
+    # noinspection PyUnresolvedReferences
+    from typing_extensions import TypeAlias as TypeAlias
+else:
+    # noinspection PyUnresolvedReferences
+    from typing import TypeAlias as TypeAlias
+
 log = logging.getLogger(__name__)
 
 # Windows
