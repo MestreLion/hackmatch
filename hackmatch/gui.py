@@ -13,6 +13,7 @@ import PIL.Image, PIL.ImageGrab
 import pywinctl
 
 from . import ai
+from . import config as c
 from . import util as u
 
 
@@ -20,6 +21,24 @@ BBox: u.TypeAlias = t.Tuple[int, int, int, int]
 Size: u.TypeAlias = t.Tuple[int, int]
 Image: u.TypeAlias = PIL.Image.Image
 Window: u.TypeAlias = pywinctl.Window
+
+BPP: int = 3  # Bits per pixel in Image data (bit depth)
+
+
+class Offsets:
+    BLOCK_SIZE = (72, 72)
+    BOARD_OFFSET = (440, 150)
+    BOARD_HEIGHT = 770
+    BOARD_WIDTH = BLOCK_SIZE[0] * c.BOARD_COLS
+
+
+OFFSETS = {
+    1920: Offsets,
+    1600: None,
+    1366: None,
+}
+# for _cls in OFFSETS.values():
+#     _cls.BOARD_WIDTH = _cls.BLOCK_SIZE[0] * c.BOARD_COLS
 
 log = logging.getLogger(__name__)
 
@@ -96,15 +115,24 @@ class GameWindow:
             img: Image = self.take_screenshot()
         else:
             img = PIL.Image.open(path).convert(mode="RGB")
-        assert len(img.getbands()) == BPP
-        y_offset: int = find_y_offset(img)
+        width, height = img.size
+        offsets = OFFSETS.get(width)
+        if offsets is None:
+            raise u.HMError(
+                "Unsupported image width: %s, must be one of %s",
+                width,
+                tuple(OFFSETS.keys()),
+            )
+        data: bytes = img.tobytes()
+        assert len(data) == width * height * BPP
+        y_offset: int = find_y_offset(data, width, height, offsets)
         return board
 
     def apply_moves(self, moves: t.List[ai.Move]) -> None:
         ...
 
 
-def find_y_offset(img: Image) -> int:
+def find_y_offset(data: bytes, width: int, height: int, o: t.Type[Offsets]) -> int:
     return 0
 
 
@@ -125,4 +153,5 @@ def _patch_ewmh() -> None:
 
 if u.LINUX:
     import types
+
     _patch_ewmh()
