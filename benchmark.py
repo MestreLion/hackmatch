@@ -11,12 +11,13 @@ import sys
 import time
 import typing as t
 
-import mss  # not listed in requirements, install manually
+import mss  # type: ignore  # not listed in requirements, install manually
 import PIL.Image
 import PIL.ImageGrab
 import pyautogui
 
 
+Arg = t.Union[str, int]  # TypeAlias
 log = logging.getLogger(os.path.basename(os.path.splitext(__file__)[0]))
 # ------------------------------------------------------------------------------
 
@@ -102,18 +103,17 @@ def main() -> None:
         return
 
     func = sys.argv[1]
-    args = t.cast(t.List[object], sys.argv[2:])
     if func not in funcs:
         log.error("Function %r does not exist! Try one of:\n\t%s", func, "\n\t".join(funcs))
         return
 
-    def try_int(value: object) -> object:
+    def try_int(value: Arg) -> t.Union[int, Arg]:
         try:
-            return int(value)  # type: ignore
+            return int(value)
         except ValueError:
             return value
 
-    args = [try_int(_) for _ in args]
+    args: t.List[Arg] = [try_int(_) for _ in sys.argv[2:]]
 
     res = globals()[func](*args)
     if res is not None:
