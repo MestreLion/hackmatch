@@ -48,6 +48,7 @@ dev = [
     "black",
     "mypy >= 0.900",  # pyproject.toml
     "types-Pillow",
+    "types-PyAutoGUI > 0.9.3.2",  # pyScreeze reexport fixes
 ]
 # -----------------------------------------------------------------------------
 # Entry points
