@@ -15,7 +15,9 @@ from . import util as u
 log = logging.getLogger(__name__)
 
 
+# Ugly hack, for now...
 Block: u.TypeAlias = str
+EMPTY = "."
 Grid: u.TypeAlias = t.Dict[t.Tuple[int, int], Block]
 
 
@@ -32,14 +34,14 @@ class Board:
         self,
         grid: t.Optional[Grid] = None,
         phage_col: int = c.BOARD_COLS // 2,
-        held_block: Block = Block.EMPTY,
+        held_block: Block = EMPTY,
     ):
         self.grid: Grid = grid or {}
         self.phage_col: int = phage_col
         self.held_block: Block = held_block
 
     def get_block(self, col: int, row: int) -> Block:
-        return self.grid.get((col, row), Block.EMPTY)
+        return self.grid.get((col, row), EMPTY)
 
     def set_block(self, col: int, row: int, block: Block) -> None:
         if not (0 <= col < c.BOARD_COLS and 0 <= row < c.BOARD_ROWS):

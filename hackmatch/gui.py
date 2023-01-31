@@ -33,7 +33,7 @@ class Block(u.BytesEnum):
     BLUE = b"b"
 
     def to_ai(self) -> ai.Block:
-        return self.name[0]
+        return self.name[0] if self.value else ai.EMPTY
 
 
 class WindowNotFoundError(u.HMError):
