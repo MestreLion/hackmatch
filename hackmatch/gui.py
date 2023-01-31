@@ -107,12 +107,6 @@ def get_screen_size() -> Size:
 
 # Not needed in pywinctl > 0.0.42
 def _patch_ewmh() -> None:
-    import sys
-
-    if not sys.platform == "linux":
-        return
-    import types
-
     # noinspection PyProtectedMember
     from pywinctl._pywinctl_linux import EWMH as EWMH
 
@@ -122,4 +116,6 @@ def _patch_ewmh() -> None:
     EWMH.setActiveWindow = types.MethodType(setactivewindow, EWMH)
 
 
-_patch_ewmh()
+if u.LINUX:
+    import types
+    _patch_ewmh()

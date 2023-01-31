@@ -6,7 +6,6 @@
 General utilities
 """
 import enum
-import logging
 import os
 import subprocess
 import sys
@@ -20,10 +19,13 @@ else:
     # noinspection PyUnresolvedReferences
     from typing import TypeAlias as TypeAlias
 
-log = logging.getLogger(__name__)
-
+# Platform detection
+# Bool constants used to encapsulate detection method, currently sys.platform
 # Windows
 if sys.platform == "win32":
+    WINDOWS = True
+    MACOS = False
+    LINUX = False
 
     def _run_file(path: str) -> None:
         os.startfile(path)
@@ -31,6 +33,9 @@ if sys.platform == "win32":
 
 # macOS
 elif sys.platform == "darwin":
+    WINDOWS = False
+    MACOS = True
+    LINUX = False
 
     def _run_file(path: str) -> None:
         subprocess.run(("open", path), capture_output=True, check=True, shell=True)
@@ -38,6 +43,9 @@ elif sys.platform == "darwin":
 
 # Linux and variants
 else:
+    WINDOWS = False
+    MACOS = False
+    LINUX = True
 
     def _run_file(path: str) -> None:
         subprocess.run(("xdg-open", path), capture_output=True, check=True)

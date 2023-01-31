@@ -11,17 +11,14 @@ import logging
 import os
 import pathlib
 import re
-import sys
 import typing as t
 
 from . import util as u
 
-# Windows
-if sys.platform == "win32":
+if u.WINDOWS:
     SAVE_PATH_PREFIX = "~/Documents/My Games"
 
-# macOS
-elif sys.platform == "darwin":
+elif u.MACOS:
     SAVE_PATH_PREFIX = "~/Library/Application Support"
 
 # Linux and variants
