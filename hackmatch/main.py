@@ -45,6 +45,8 @@ def parse_args(argv: t.Optional[t.List[str]] = None) -> argparse.Namespace:
         help="Verbose mode, output extra info.",
     )
 
+    parser.add_argument("path")
+
     args = parser.parse_args(argv)
     args.debug = args.loglevel == logging.DEBUG
     return args
@@ -61,7 +63,7 @@ def main(argv: t.Optional[t.List[str]] = None) -> None:
         )
         log.debug(args)
         c.init(args)
-        logic.bot()
+        logic.bot(path=args.path)
     except u.HMError as err:
         log.critical(err)
         sys.exit(1)

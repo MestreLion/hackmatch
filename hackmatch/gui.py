@@ -64,7 +64,7 @@ class GameWindow:
         try:
             return pywinctl.Rect(*self.window.topleft, *self.window.bottomright)
         except Exception as e:
-            raise WindowNotFoundError("Window closed: %s", e.__class__.__name__)
+            raise WindowNotFoundError("Game window closed [%s]", e.__class__.__name__)
 
     @property
     def size(self) -> Size:
@@ -81,15 +81,22 @@ class GameWindow:
     def take_screenshot(self) -> Image:
         bbox: BBox = self.bbox
         log.debug("Taking window screenshot: %s", bbox)
-        return PIL.ImageGrab.grab(bbox, xdisplay="")
+        image = PIL.ImageGrab.grab(bbox, xdisplay="")  # RGBA in macOS
+        if image.mode != "RGB":
+            image = image.convert(mode="RGB")
+        return image
 
     def close(self) -> None:
         log.info("Closing game")
         self.window.close()
 
-    def to_board(self) -> ai.Board:
+    def to_board(self, path: t.Optional[str] = None) -> ai.Board:
         board = ai.Board()
-        img: Image = self.take_screenshot()
+        if not path:
+            img: Image = self.take_screenshot()
+        else:
+            img = PIL.Image.open(path).convert(mode="RGB")
+        assert len(img.getbands()) == BPP
         y_offset: int = find_y_offset(img)
         return board
 

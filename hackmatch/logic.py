@@ -19,7 +19,7 @@ from . import gui
 log = logging.getLogger(__name__)
 
 
-def bot() -> t.NoReturn:
+def bot(path: t.Optional[str]) -> t.NoReturn:
     window: t.Optional[gui.GameWindow]
     settings: c.GameSettings = game.read_settings()
     if not game.check_settings(settings):
@@ -36,7 +36,7 @@ def bot() -> t.NoReturn:
     prev: t.Optional[ai.Board] = None
     timer = u.FrameRateLimiter(1)  # c.config["bot_fps"]
     while True:
-        board: ai.Board = window.to_board()
+        board: ai.Board = window.to_board(path)
         if board != prev:
             log.info("Board: %s", board)
             moves = board.solve()
