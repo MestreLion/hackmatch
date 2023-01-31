@@ -12,8 +12,6 @@ import typing as t
 from . import config as c
 from . import util as u
 
-RawSettings: u.TypeAlias = t.Dict[str, str]
-
 log = logging.getLogger(__name__)
 
 
@@ -25,27 +23,28 @@ def launch() -> None:
         raise u.HMError("Could not launch the game: %s", e, e=e.e)
 
 
-def read_settings() -> RawSettings:
+def read_settings() -> c.GameSettings:
     log.info("Read game settings: %s", c.GAME_CONFIG_PATH)
     with open(c.GAME_CONFIG_PATH) as f:
         settings = f.readlines()
-    data = {k.strip(): v.strip() for k, v in (line.split("=") for line in settings)}
+    data: c.GameSettings = {
+        k.strip(): v.strip() for k, v in (line.split("=") for line in settings)
+    }
     log.debug("Parsed game settings: %s", data)
     return data
 
 
-def write_settings(data: c.GameSettings) -> None:
+def write_settings(settings: c.GameSettings) -> None:
     log.info("Write game settings: %s", c.GAME_CONFIG_PATH)
-    text = "\n".join(f"{k} = {v}" for k, v in data.items())
+    text = "\n".join(f"{k} = {v}" for k, v in settings.items())
     with open(c.GAME_CONFIG_PATH, "w") as f:
         f.write(text + "\n")
 
 
 def check_settings(
-    data: t.Optional[c.GameSettings] = None, raise_on_error: bool = False
+    settings: t.Optional[c.GameSettings] = None, raise_on_error: bool = False
 ) -> bool:
-    if data is None:
-        data = read_settings()
+    data = read_settings() if settings is None else settings
     diff = {k: (data[k], v) for k, v in c.GAME_SETTINGS.items() if not str(v) == data[k]}
     if not diff:
         return True
@@ -58,9 +57,8 @@ def check_settings(
     return False
 
 
-def change_settings(data: t.Optional[c.GameSettings] = None) -> bool:
-    if data is None:
-        data = read_settings()
+def change_settings(settings: t.Optional[c.GameSettings] = None) -> bool:
+    data = read_settings() if settings is None else settings
     original = data.copy()
     data.update({k: str(v) for k, v in c.GAME_SETTINGS.items()})
     if data == original:

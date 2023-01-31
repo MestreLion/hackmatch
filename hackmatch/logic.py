@@ -21,7 +21,7 @@ log = logging.getLogger(__name__)
 
 def bot() -> t.NoReturn:
     window: t.Optional[gui.GameWindow]
-    settings: game.RawSettings = game.read_settings()
+    settings: c.GameSettings = game.read_settings()
     if not game.check_settings(settings):
         window = get_game_window(launch=False, activate=False)
         if window is not None:
