@@ -61,7 +61,10 @@ class GameWindow:
     @property
     def bbox(self) -> BBox:
         # return self.window.bbox  # in PyWinCtl >= 0.43
-        return pywinctl.Rect(*self.window.topleft, *self.window.bottomright)
+        try:
+            return pywinctl.Rect(*self.window.topleft, *self.window.bottomright)
+        except Exception as e:
+            raise WindowNotFoundError("Window closed: %s", e.__class__.__name__)
 
     @property
     def size(self) -> Size:

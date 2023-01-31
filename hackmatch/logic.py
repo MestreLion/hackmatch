@@ -34,7 +34,7 @@ def bot() -> t.NoReturn:
     log.info("Game window: %s", window)
 
     prev: t.Optional[ai.Board] = None
-    timer = u.FrameRateLimiter(c.config["bot_fps"])
+    timer = u.FrameRateLimiter(1)  # c.config["bot_fps"]
     while True:
         board: ai.Board = window.to_board()
         if board != prev:
@@ -42,6 +42,7 @@ def bot() -> t.NoReturn:
             moves = board.solve()
             log.info("Moves: %s", moves)
             window.apply_moves(moves)
+            prev = board
         timer.sleep()
 
 
