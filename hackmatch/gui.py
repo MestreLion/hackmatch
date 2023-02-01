@@ -17,39 +17,61 @@ from . import config as c
 from . import util as u
 
 
-BBox: u.TypeAlias = t.Tuple[int, int, int, int]
-Size: u.TypeAlias = t.Tuple[int, int]
+log = logging.getLogger(__name__)
+
+BBox: u.TypeAlias = t.Tuple[int, int, int, int]  # left, top, right, bottom
+Size: u.TypeAlias = t.Tuple[int, int]  # width, height
+Offset: u.TypeAlias = t.Tuple[int, int]  # x, y
 Image: u.TypeAlias = PIL.Image.Image
 Window: u.TypeAlias = pywinctl.Window
 
 BPP: int = 3  # Bits per pixel in Image data (bit depth)
+MATCH_PIXELS = 10  # Pixels in a row to consider a block match
 
 
-class Offsets:
-    BLOCK_SIZE = (72, 72)
-    BOARD_OFFSET = (440, 150)
-    BOARD_HEIGHT = 770
-    BOARD_WIDTH = BLOCK_SIZE[0] * c.BOARD_COLS
+class BoardParams:
+    BLOCK_SIZE: Size = (72, 72)
+    BLOCK_X_OFFSET: int = 30  # From block left to marker
+    OFFSET: Offset = (440, 151)  # Leftmost block start, Top "shadow" ends
+    HEIGHT: int = 770  # Play area including Phage
+    WIDTH: int = 0  # BLOCK_SIZE[0] * c.BOARD_COLS
+    BLOCKS_Y_RANGE: t.Tuple[int, int, int] = (0, 0, -1)
 
 
-OFFSETS = {
-    1920: Offsets,
-    1600: None,
+class BoardParams1600:
+    BLOCK_SIZE: Size = (60, 60)
+    BLOCK_X_OFFSET: int = 22
+    OFFSET: Offset = (367, 126)
+    HEIGHT: int = 770
+    WIDTH: int = 0
+    BLOCKS_Y_RANGE: t.Tuple[int, int, int] = (0, 0, -1)
+
+
+BOARD_PARAMS = {
+    1920: BoardParams,
+    1600: BoardParams1600,
     1366: None,
 }
-# for _cls in OFFSETS.values():
-#     _cls.BOARD_WIDTH = _cls.BLOCK_SIZE[0] * c.BOARD_COLS
-
-log = logging.getLogger(__name__)
+for _cls in BOARD_PARAMS.values():
+    if _cls is None:
+        continue
+    _cls.WIDTH = _cls.BLOCK_SIZE[0] * c.BOARD_COLS
+    _cls.BLOCKS_Y_RANGE = (
+        _cls.OFFSET[1] + _cls.BLOCK_SIZE[1] * c.BOARD_ROWS,
+        _cls.OFFSET[1],
+        -1,
+    )
 
 
 class Block(u.BytesEnum):
     EMPTY = b""
-    YELLOW = b"a"
-    GREEN = b"g"
-    RED = b"r"
-    PINK = b"p"
-    BLUE = b"b"
+    # fmt: off
+    YELLOW = b"\xeb\xa3\x18"  # RGB(235, 163,  24), HSV( 40, 90, 86+6=92)
+    GREEN  = b"\x12\xba\x9c"  # RGB( 18, 186, 156), HSV(169, 90, 68+5=73)
+    RED    = b"\xdc\x17\x31"  # RGB(220,  23,  49), HSV(352, 90, 80+6=86), R=219, G=22
+    PINK   = b"\xfb\x16\xb8"  # RGB(251,  22, 184), HSV(317, 91, 92+6=98), R=250
+    BLUE   = b"\x20\x39\x82"  # RGB( 32,  57, 130), HSV(255, 75, 47+4=51)
+    # fmt: on
 
     def to_ai(self) -> ai.Block:
         return self.name[0] if self.value else ai.EMPTY
@@ -116,24 +138,37 @@ class GameWindow:
         else:
             img = PIL.Image.open(path).convert(mode="RGB")
         width, height = img.size
-        offsets = OFFSETS.get(width)
-        if offsets is None:
+        params = BOARD_PARAMS.get(width)
+        if params is None:
             raise u.HMError(
                 "Unsupported image width: %s, must be one of %s",
                 width,
-                tuple(OFFSETS.keys()),
+                tuple(BOARD_PARAMS.keys()),
             )
         data: bytes = img.tobytes()
         assert len(data) == width * height * BPP
-        y_offset: int = find_y_offset(data, width, height, offsets)
+        y_offset, col, row, block = find_y_offset(data, width, params)
         return board
 
     def apply_moves(self, moves: t.List[ai.Move]) -> None:
         ...
 
 
-def find_y_offset(data: bytes, width: int, height: int, o: t.Type[Offsets]) -> int:
-    return 0
+def find_y_offset(
+    data: bytes, width: int, p: t.Type[BoardParams]
+) -> t.Tuple[int, int, int, Block]:
+    for y in range(*p.BLOCKS_Y_RANGE):
+        for col in range(c.BOARD_COLS):
+            x = p.OFFSET[0] + col * p.BLOCK_SIZE[0] + p.BLOCK_X_OFFSET
+            d = BPP * (width * y + x)
+            block = Block.match(data[d : d + MATCH_PIXELS * BPP], MATCH_PIXELS)
+            if block is Block.EMPTY:
+                continue
+            row, y_offset = divmod(p.BLOCKS_Y_RANGE[0] - y, p.BLOCK_SIZE[1])
+            log.info("Board Y Offset: %2s, Pixel%s Board%s %s",
+                     y_offset, (x, y), (col, row), block)  # fmt: skip
+            return y_offset, col, row, block
+    return -1, -1, -1, Block.EMPTY
 
 
 def get_screen_size() -> Size:

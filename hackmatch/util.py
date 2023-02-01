@@ -83,8 +83,8 @@ Enum = enum.Enum
 
 class BytesEnum(bytes, enum.Enum):
     @classmethod
-    def match(cls, value: bytes) -> "BytesEnum":
-        return next((item for item in cls if item == value), cls(b""))
+    def match(cls, value: bytes, repeat: int = 8) -> "BytesEnum":
+        return next((item for item in cls if repeat * item == value), cls(b""))
 
 
 class FrameRateLimiter:

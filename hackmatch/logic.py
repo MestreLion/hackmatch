@@ -44,6 +44,8 @@ def bot(path: t.Optional[str]) -> t.NoReturn:
             window.apply_moves(moves)
             prev = board
         timer.sleep()
+        if path:
+            break
 
 
 def get_game_window(launch: bool = True, activate: bool = True) -> t.Optional[gui.GameWindow]:
