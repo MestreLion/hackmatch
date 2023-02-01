@@ -40,8 +40,8 @@ WINDOW_SIZE = (1920, 1080)
 # Game Settings
 GameSettings: u.TypeAlias = t.Dict[str, t.Union[str, int, bool]]
 GAME_SETTINGS: GameSettings = {
-    "Resolution.Width": WINDOW_SIZE[0],
-    "Resolution.Height": WINDOW_SIZE[1],
+    # "Resolution.Width": WINDOW_SIZE[0],
+    # "Resolution.Height": WINDOW_SIZE[1],
     "EnableCrtDistortion": False,
 }
 
