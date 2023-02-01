@@ -38,7 +38,7 @@ def bot(path: t.Optional[str]) -> t.NoReturn:
     while True:
         board: ai.Board = window.to_board(path)
         if board != prev:
-            log.info("Board: %s", board)
+            log.info("Board:\n%s", board)
             moves = board.solve()
             log.info("Moves: %s", moves)
             window.apply_moves(moves)

@@ -59,3 +59,9 @@ class Board:
             and self.phage_col == self.phage_col
             and self.held_block == self.held_block
         )
+
+    def __str__(self) -> str:
+        return "\n".join(
+            "".join(str(self.get_block(col, row)) for col in range(c.BOARD_COLS))
+            for row in range(c.BOARD_ROWS)
+        )

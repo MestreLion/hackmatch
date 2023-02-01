@@ -163,7 +163,13 @@ class GameWindow:
             )
         data: bytes = img.tobytes()
         assert len(data) == width * height * BPP
-        y_offset, col, row, block = find_y_offset(data, width, params)
+        y_offset, block_col, block_row, block = find_y_offset(data, width, params)
+
+        for row in range(c.BOARD_ROWS):
+            y = params.OFFSET[1] + row * params.BLOCK_SIZE[1] + y_offset
+            for col in range(c.BOARD_COLS):
+                block, x = get_block_at(data, col, y, width, params)
+                board.set_block(col, row, block.to_ai())
         return board
 
     def apply_moves(self, moves: t.List[ai.Move]) -> None:
@@ -171,20 +177,24 @@ class GameWindow:
 
 
 def find_y_offset(
-    data: bytes, width: int, p: t.Type[BoardParams]
+    data: bytes, width: int, p: t.Type[BoardParams1920x1080]
 ) -> t.Tuple[int, int, int, Block]:
     for y in range(*p.BLOCKS_Y_RANGE):
         for col in range(c.BOARD_COLS):
-            x = p.OFFSET[0] + col * p.BLOCK_SIZE[0] + p.BLOCK_X_OFFSET
-            d = BPP * (width * y + x)
-            block = Block.match(data[d : d + MATCH_PIXELS * BPP], MATCH_PIXELS)
+            block, x = get_block_at(data, col, y, width, p)
             if block is Block.EMPTY:
                 continue
-            row, y_offset = divmod(p.BLOCKS_Y_RANGE[0] - y, p.BLOCK_SIZE[1])
+            row, y_offset = divmod(y - p.BLOCKS_Y_RANGE[1], p.BLOCK_SIZE[1])
             log.info("Board Y Offset: %2s, Pixel%s Board%s %s",
                      y_offset, (x, y), (col, row), block)  # fmt: skip
             return y_offset, col, row, block
     return -1, -1, -1, Block.EMPTY
+
+
+def get_block_at(data, col, y, width, p):
+    x = p.OFFSET[0] + col * p.BLOCK_SIZE[0] + p.BLOCK_X_OFFSET
+    d = BPP * (width * y + x)
+    return Block.match(data[d : d + MATCH_PIXELS * BPP], MATCH_PIXELS), x
 
 
 def get_screen_size() -> Size:
