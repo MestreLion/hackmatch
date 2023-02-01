@@ -81,7 +81,7 @@ class Block(u.BytesEnum):
     YELLOW = b"\xeb\xa3\x18"  # RGB(235, 163,  24), HSV( 40, 90, 86+6=92)
     GREEN  = b"\x12\xba\x9c"  # RGB( 18, 186, 156), HSV(169, 90, 68+5=73)
     RED    = b"\xdc\x17\x31"  # RGB(220,  23,  49), HSV(352, 90, 80+6=86), R=219, G=22
-    PINK   = b"\xfb\x16\xb8"  # RGB(251,  22, 184), HSV(317, 91, 92+6=98), R=250
+    PINK   = b"\xfb\x17\xb8"  # RGB(251,  23, 184), HSV(317, 91, 92+6=98), R=250, G=22
     BLUE   = b"\x20\x39\x82"  # RGB( 32,  57, 130), HSV(255, 75, 47+4=51)
     # fmt: on
 
