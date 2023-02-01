@@ -97,6 +97,7 @@ class GameWindow:
     def __init__(self, window: Window):
         self.window: Window = window
         self.offset: t.List[int] = [0, 0]
+        self.prev_size: Size = self.size
 
     def __str__(self) -> str:
         return str(self.window)
@@ -150,6 +151,9 @@ class GameWindow:
         else:
             img = PIL.Image.open(path).convert(mode="RGB")
         width, height = img.size
+        if (width, height) != self.prev_size:
+            log.info("Game window resized: %s", self)
+            self.prev_size = (width, height)
         params = BOARD_PARAMS.get((width, height))
         if params is None:
             raise u.HMError(
