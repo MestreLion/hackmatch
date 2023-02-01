@@ -29,28 +29,40 @@ BPP: int = 3  # Bits per pixel in Image data (bit depth)
 MATCH_PIXELS = 10  # Pixels in a row to consider a block match
 
 
-class BoardParams:
+class BoardParams1920x1080:
     BLOCK_SIZE: Size = (72, 72)
     BLOCK_X_OFFSET: int = 30  # From block left to marker
     OFFSET: Offset = (440, 151)  # Leftmost block start, Top "shadow" ends
-    HEIGHT: int = 770  # Play area including Phage
-    WIDTH: int = 0  # BLOCK_SIZE[0] * c.BOARD_COLS
-    BLOCKS_Y_RANGE: t.Tuple[int, int, int] = (0, 0, -1)
-
-
-class BoardParams1600:
-    BLOCK_SIZE: Size = (60, 60)
-    BLOCK_X_OFFSET: int = 22
-    OFFSET: Offset = (367, 126)
-    HEIGHT: int = 770
+    HEIGHT: int = 770  # Play area including Phage. OFFSET[1] + HEIGHT == Ground
     WIDTH: int = 0
-    BLOCKS_Y_RANGE: t.Tuple[int, int, int] = (0, 0, -1)
+    BLOCKS_Y_RANGE: t.Tuple[int, int, int] = (0, 0, 0)
+
+
+class BoardParams1920x1200(BoardParams1920x1080):
+    OFFSET = (440, 211)
+
+
+class BoardParams1600x900(BoardParams1920x1080):
+    BLOCK_SIZE = (60, 60)
+    BLOCK_X_OFFSET = 22
+    OFFSET = (367, 126)
+    HEIGHT = 643
+
+
+class BoardParams1366x768(BoardParams1920x1080):
+    BLOCK_SIZE = (51, 51)
+    BLOCK_X_OFFSET = 20
+    OFFSET = (313, 107)
+    HEIGHT = 548
 
 
 BOARD_PARAMS = {
-    1920: BoardParams,
-    1600: BoardParams1600,
-    1366: None,
+    # fmt: off
+    (1920, 1080): BoardParams1920x1080,
+    (1920, 1200): BoardParams1920x1200,
+    (1600,  900): BoardParams1600x900,
+    (1366,  768): BoardParams1366x768,
+    # fmt: on
 }
 for _cls in BOARD_PARAMS.values():
     if _cls is None:
@@ -138,10 +150,10 @@ class GameWindow:
         else:
             img = PIL.Image.open(path).convert(mode="RGB")
         width, height = img.size
-        params = BOARD_PARAMS.get(width)
+        params = BOARD_PARAMS.get((width, height))
         if params is None:
             raise u.HMError(
-                "Unsupported image width: %s, must be one of %s",
+                "Unsupported game window size: %s, must be one of %s",
                 width,
                 tuple(BOARD_PARAMS.keys()),
             )

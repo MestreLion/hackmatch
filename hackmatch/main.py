@@ -45,7 +45,7 @@ def parse_args(argv: t.Optional[t.List[str]] = None) -> argparse.Namespace:
         help="Verbose mode, output extra info.",
     )
 
-    parser.add_argument("path")
+    parser.add_argument("path", nargs="?")
 
     args = parser.parse_args(argv)
     args.debug = args.loglevel == logging.DEBUG
