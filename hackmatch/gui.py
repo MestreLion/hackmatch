@@ -144,12 +144,12 @@ class GameWindow:
         log.info("Closing game")
         self.window.close()
 
-    def to_board(self, path: t.Optional[str] = None) -> ai.Board:
+    def to_board(self) -> ai.Board:
         board = ai.Board()
-        if not path:
+        if not c.args.path:
             img: Image = self.take_screenshot()
         else:
-            img = PIL.Image.open(path).convert(mode="RGB")
+            img = PIL.Image.open(c.args.path).convert(mode="RGB")
         width, height = img.size
         if (width, height) != self.prev_size:
             log.info("Game window resized: %s", self)

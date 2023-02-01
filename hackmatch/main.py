@@ -63,7 +63,7 @@ def main(argv: t.Optional[t.List[str]] = None) -> None:
         )
         log.debug(args)
         c.init(args)
-        logic.bot(path=args.path)
+        logic.bot()
     except u.HMError as err:
         log.critical(err)
         sys.exit(1)

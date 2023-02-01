@@ -3,9 +3,10 @@
 # License: GPLv3 or later, at your choice. See <http://www.gnu.org/licenses/gpl>
 
 """
-Configuration, settings and constants
+Configuration, settings and general constants
 """
 
+import argparse
 import json
 import logging
 import os
@@ -64,9 +65,12 @@ config: t.Dict[str, t.Any] = {
     "steam_user_id": 0,
 }
 
+args: argparse.Namespace = argparse.Namespace()
 
-def init(_args: object) -> None:
-    global GAME_CONFIG_PATH
+
+def init(parsed_args: argparse.Namespace) -> None:
+    global args, GAME_CONFIG_PATH
+    args = parsed_args
     if not config["steam_user_id"]:
         config["steam_user_id"] = get_steam_user_id(config["steam_user_name"])
     GAME_CONFIG_PATH = get_game_config_path(config["steam_user_id"])
