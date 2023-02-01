@@ -164,6 +164,8 @@ class GameWindow:
         data: bytes = img.tobytes()
         assert len(data) == width * height * BPP
         y_offset, block_col, block_row, block = find_y_offset(data, width, params)
+        if y_offset < 0:
+            return board
 
         for row in range(c.BOARD_ROWS):
             y = params.OFFSET[1] + row * params.BLOCK_SIZE[1] + y_offset
