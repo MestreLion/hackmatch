@@ -29,7 +29,7 @@ def bot() -> t.NoReturn:
             time.sleep(1)  # so arbitrary!
         game.change_settings()
 
-    window = get_game_window()
+    window = get_game_window(activate=(c.args.path is None))
     assert window is not None
     log.info("Game window: %s", window)
 
