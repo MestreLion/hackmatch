@@ -48,6 +48,9 @@ class Board:
             raise InvalidCoordError("Invalid board coordinates: %s", (col, row))
         self.grid[col, row] = block
 
+    def serialize(self) -> str:
+        return str(self).replace("\n", "-")
+
     def solve(self) -> t.List[Move]:
         return []
 

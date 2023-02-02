@@ -33,9 +33,10 @@ class BoardParams1920x1080:
     BLOCK_SIZE: Size = (72, 72)
     OFFSET: Offset = (440, 151)  # Leftmost block start, Top "shadow" ends + 1
     HEIGHT: int = 770  # Board height, including Phage. OFFSET[1] + HEIGHT = Ground
-    WIDTH: int = 0  # Board width. BLOCK_SIZE[0] * BOARD_COLS
-    BLOCK_Y_OFFSET: int = 16  # From block bottom to match marker
-    BLOCK_X_OFFSET: int = 0  # From block left to match marker
+    MATCH_Y_OFFSET: int = 56  # Offset from block top to match marker
+    # Derived:
+    WIDTH: int = 0  # Board width, BLOCK_SIZE[0] * BOARD_COLS
+    MATCH_X_OFFSET: int = 0  # Offset from block left using BLOCK_SIZE and MATCH_PIXELS
     BLOCKS_Y_RANGE: t.Tuple[int, int, int] = (0, 0, 0)  # Range for finding Y offset
 
 
@@ -47,13 +48,14 @@ class BoardParams1600x900(BoardParams1920x1080):
     BLOCK_SIZE = (60, 60)
     OFFSET = (367, 126)
     HEIGHT = 643
-    BLOCK_Y_OFFSET: int = 14
+    MATCH_Y_OFFSET = 46
 
 
 class BoardParams1366x768(BoardParams1920x1080):
     BLOCK_SIZE = (51, 51)
     OFFSET = (313, 107)
     HEIGHT = 548
+    MATCH_Y_OFFSET = 40
 
 
 BOARD_PARAMS = {
@@ -69,7 +71,7 @@ for _cls in BOARD_PARAMS.values():
         continue
     # Derived constants
     _cls.WIDTH = _cls.BLOCK_SIZE[0] * c.BOARD_COLS
-    _cls.BLOCK_X_OFFSET = (_cls.BLOCK_SIZE[0] - MATCH_PIXELS) // 2
+    _cls.MATCH_X_OFFSET = (_cls.BLOCK_SIZE[0] - MATCH_PIXELS) // 2
     _cls.BLOCKS_Y_RANGE = (
         _cls.OFFSET[1] + _cls.BLOCK_SIZE[1] * c.BOARD_ROWS,
         _cls.OFFSET[1],
@@ -98,8 +100,8 @@ class WindowNotFoundError(u.HMError):
 class GameWindow:
     def __init__(self, window: Window):
         self.window: Window = window
-        self.offset: t.List[int] = [0, 0]
         self.prev_size: Size = self.size
+        self.board: ai.Board = ai.Board()
 
     def __str__(self) -> str:
         return str(self.window)
@@ -147,7 +149,6 @@ class GameWindow:
         self.window.close()
 
     def to_board(self) -> ai.Board:
-        board = ai.Board()
         if not c.args.path:
             img: Image = self.take_screenshot()
         else:
@@ -167,16 +168,19 @@ class GameWindow:
         assert len(data) == width * height * BPP
         y_offset, block_col, block_row, block = find_y_offset(data, width, params)
         if y_offset < 0:
-            return board
+            return ai.Board()
 
+        board: ai.Board = ai.Board()
         for row in range(c.BOARD_ROWS):
             y = params.OFFSET[1] + row * params.BLOCK_SIZE[1] + y_offset
             for col in range(c.BOARD_COLS):
                 block, x = get_block_at(data, col, y, width, params)
                 board.set_block(col, row, block.to_ai())
 
-        if c.args.debug:
-            draw_debug(img, y_offset)
+        if board != self.board:
+            self.board = board
+            if c.args.debug:
+                draw_debug(img, y_offset, board)
 
         return board
 
@@ -184,24 +188,28 @@ class GameWindow:
         ...
 
 
-def draw_debug(original_image, y_offset):
+def draw_debug(original_image: Image, y_offset: int, board: ai.Board):
     img = original_image.copy()
     data = original_image.tobytes()
     draw = PIL.ImageDraw.Draw(img)
     p = BOARD_PARAMS.get(img.size)
     for row in range(c.BOARD_ROWS):
         y = p.OFFSET[1] + row * p.BLOCK_SIZE[1] + y_offset
-        draw.rectangle((0, y-1, img.size[0], y+1))
+        draw.rectangle((0, y - 1, img.size[0], y + 1))
         for col in range(c.BOARD_COLS):
             block, x = get_block_at(data, col, y, original_image.size[0], p)
             draw.rectangle((x - 1, y - 1, x + MATCH_PIXELS + 1, y + 1))
             if block == Block.EMPTY:
                 continue
-            x1 = x - p.BLOCK_X_OFFSET
-            y1 = y + p.BLOCK_Y_OFFSET - p.BLOCK_SIZE[1]
-            x2 = x1 + p.BLOCK_SIZE[0] - 1
-            y2 = y1 + p.BLOCK_SIZE[1] - 1
-            draw.rectangle((x1, y1, x2, y2), outline=tuple(block.value))
+            color = tuple(block.value)
+            w, h = p.BLOCK_SIZE
+            x1 = x - p.MATCH_X_OFFSET
+            y1 = y - p.MATCH_Y_OFFSET
+            x2 = x1 + w - 1
+            y2 = y1 + h - 1
+            dx, dy = w // 4, h // 4
+            draw.rectangle((x1, y1, x2, y2), outline=color)
+            draw.rectangle((x1 + dx, y1 + dy, x2 - dx, y2 - dy), fill=color)
 
     img.crop(
         (
@@ -210,7 +218,7 @@ def draw_debug(original_image, y_offset):
             p.OFFSET[0] + p.WIDTH,
             p.BLOCKS_Y_RANGE[0],
         )
-    ).show()
+    ).save(f"debug_{img.height}_{y_offset}_{board.serialize()}.png")
 
 
 def find_y_offset(
@@ -229,7 +237,7 @@ def find_y_offset(
 
 
 def get_block_at(data, col, y, width, p) -> t.Tuple[Block, int]:
-    x = p.OFFSET[0] + col * p.BLOCK_SIZE[0] + p.BLOCK_X_OFFSET
+    x = p.OFFSET[0] + col * p.BLOCK_SIZE[0] + p.MATCH_X_OFFSET
     d = BPP * (width * y + x)
     return Block.match(data[d : d + MATCH_PIXELS * BPP], MATCH_PIXELS), x
 
