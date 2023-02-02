@@ -6,6 +6,7 @@
 GUI Input and Output
 """
 
+import enum
 import logging
 import typing as t
 
@@ -30,7 +31,11 @@ BPP: int = 3  # Bits per pixel in Image data (bit depth)
 MATCH_PIXELS = 10  # Pixels in a row to consider a block match
 
 
-class BaseBlock(bytes, u.Enum):
+class BaseBlock(bytes, enum.Enum):
+    # If value-based Enum.___contains__() is needed in Python < 3.12,
+    # see alternatives from https://stackoverflow.com/q/43634618/624066
+    # - return isinstance(item, cls) or any(item == i.value for i in cls)
+    # - return item in set(i.value for i in cls) | set (cls)  # caching sets
     @classmethod
     def match(cls: t.Type[_BT], value: bytes, repeat: int = 8) -> _BT:
         return next((item for item in cls if repeat * item == value), cls(b""))
@@ -86,6 +91,13 @@ class Parameters1920x1080(Parameters):
 class Parameters1920x1200(Parameters1920x1080):
     OFFSET = (440, 211)
 
+    class Block(BaseBlock):
+        YELLOW = b"\xe8\xa1\x17"  # RGB(235, 161,  24)
+        GREEN  = b"\x12\xb7\x99"  # RGB( 18, 183, 153)
+        RED    = b"\xd9\x16\x30"  # RGB(217,  22,  48)
+        PINK   = b"\xf7\x16\xb6"  # RGB(247,  22, 182)
+        BLUE   = b"\x20\x38\x80"  # RGB( 32,  56, 128)
+
 
 class Parameters1600x900(Parameters):
     BLOCK_SIZE = (60, 60)
@@ -93,12 +105,22 @@ class Parameters1600x900(Parameters):
     HEIGHT = 643
     MATCH_Y_OFFSET = 46
 
+    class Block(BaseBlock):
+        TEAL   = b"\x12\xba\x9b"  # RGB( 18, 186, 155), alternate color for GREEN
+
 
 class Parameters1366x768(Parameters):
     BLOCK_SIZE = (51, 51)
     OFFSET = (313, 107)
     HEIGHT = 548
     MATCH_Y_OFFSET = 40
+
+    class Block(BaseBlock):
+        # ORANGE  = b"\xe7\xa2\x23"  # RGB(231, 162,  35), alternate YELLOW
+        TEAL      = b"\x12\xba\x9b"  # RGB( 18, 186, 155), alternate GREEN
+        # CRIMSON = b"\xab\x10\x27"  # RGB(171,  16,  39), alternate RED
+        # JEANS   = b"\x32\x3d\x91"  # RGB( 50,  61, 145), alternate BLUE
+        # SALMON  = b"\xf4\x24\xb3"  # RGB(244,  36, 179), alternate PINK
 
 
 PARAMETERS: t.Dict[Size, t.Type[Parameters]] = {
@@ -232,6 +254,9 @@ def draw_debug(original: Image, p: t.Type[Parameters], y_offset: int) -> Image:
 
 
 def find_y_offset(data: bytes, p: t.Type[Parameters]) -> int:
+    # TODO: Resolution-specific quirks:
+    #  - 1600x900: green RGB varies in the same image, and can match the top.
+    #    Do not trust for Y offset
     for y in range(*p.BLOCKS_Y_RANGE):
         for col in range(c.BOARD_COLS):
             x = p.x(col)
@@ -282,6 +307,16 @@ def get_parameters(size: Size) -> t.Type[Parameters]:
             cls.OFFSET[1],
             -1,
         )
+        # Wizardry to add default members from the base class in Block enum
+        if cls.Block.__members__.keys() != Parameters.Block.__members__.keys():
+            members = Parameters.Block.__members__.copy()
+            members.update(cls.Block.__members__)
+            # Using cls.Block = enum.Enum(...) makes mypy unhappy.
+            setattr(
+                cls,
+                "Block",
+                enum.Enum("Block", members, qualname=cls.Block.__qualname__, type=BaseBlock),
+            )
     return cls
 
 
