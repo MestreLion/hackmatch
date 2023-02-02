@@ -81,12 +81,6 @@ class RunFileError(HMError):
 Enum = enum.Enum
 
 
-class BytesEnum(bytes, enum.Enum):
-    @classmethod
-    def match(cls, value: bytes, repeat: int = 8) -> "BytesEnum":
-        return next((item for item in cls if repeat * item == value), cls(b""))
-
-
 class FrameRateLimiter:
     def __init__(self, fps: float = 60):
         self.fps: float = fps

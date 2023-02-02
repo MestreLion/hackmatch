@@ -19,7 +19,7 @@ from . import gui
 log = logging.getLogger(__name__)
 
 
-def bot() -> t.NoReturn:
+def bot() -> None:
     window: t.Optional[gui.GameWindow]
     settings: c.GameSettings = game.read_settings()
     if not game.check_settings(settings):
