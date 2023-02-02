@@ -42,7 +42,7 @@ class BaseBlock(bytes, u.Enum):
 # fmt: off
 class Parameters:
     """Base class, declaring parameters"""
-    SIZE: Size = (0, 0)  # Window Size
+    GAME_SIZE: Size = (0, 0)  # Expected Window and screenshot image size
     BLOCK_SIZE: Size = (0, 0)  # Block Size
     OFFSET: Offset = (0, 0)  # Leftmost block start, Top "shadow" ends + 1
     HEIGHT: int = 0  # Board height, including Phage. OFFSET[1] + HEIGHT = Ground
@@ -60,6 +60,20 @@ class Parameters:
         RED    = b"\xdc\x17\x31"  # RGB(220,  23,  49), HSV(352, 90, 80+6=86), R=219, G=22
         PINK   = b"\xfb\x17\xb8"  # RGB(251,  23, 184), HSV(317, 91, 92+6=98), R=250, G=22
         BLUE   = b"\x20\x39\x82"  # RGB( 32,  57, 130), HSV(255, 75, 47+4=51)
+
+    @classmethod
+    def x(cls, col: int) -> int:
+        if not 0 <= col < c.BOARD_COLS:
+            raise InvalidValue("Invalid column: %s", col)
+        return cls.OFFSET[0] + col * cls.BLOCK_SIZE[0] + cls.MATCH_X_OFFSET
+
+    @classmethod
+    def y(cls, row: int, y_offset: int) -> int:
+        if not 0 <= row < c.BOARD_ROWS:
+            raise InvalidValue("Invalid row: %s", row)
+        if not 0 <= y_offset < cls.BLOCK_SIZE[1]:
+            raise InvalidValue("Invalid y offset: %s", y_offset)
+        return cls.OFFSET[1] + row * cls.BLOCK_SIZE[1] + y_offset
 
 
 class Parameters1920x1080(Parameters):
@@ -98,6 +112,10 @@ PARAMETERS: t.Dict[Size, t.Type[Parameters]] = {
 
 class WindowNotFoundError(u.HMError):
     """Game window not found"""
+
+
+class InvalidValue(u.HMError, ValueError):
+    """Invalid or out-of-bounds value for col, row, x, y, ..."""
 
 
 class GameWindow:
@@ -170,34 +188,33 @@ class GameWindow:
 
         board: ai.Board = ai.Board()
         for row in range(c.BOARD_ROWS):
-            y = params.OFFSET[1] + row * params.BLOCK_SIZE[1] + y_offset
             for col in range(c.BOARD_COLS):
-                block, x = get_block_at(data, col, y, params)
+                block = get_block_at(data, params, col, row, y_offset)
                 board.set_block(col, row, block.to_ai())
 
         if board != self.board:
             self.board = board
             if c.args.debug:
-                draw_debug(img, y_offset, board, params)
-
+                draw_debug(img, params, y_offset).save(
+                    f"debug_{size[1]}_{y_offset}_{board.serialize()}.png"
+                )
         return board
 
     def apply_moves(self, moves: t.List[ai.Move]) -> None:
         ...
 
 
-def draw_debug(
-    original: Image, y_offset: int, board: ai.Board, p: t.Type[Parameters]
-) -> None:
+def draw_debug(original: Image, p: t.Type[Parameters], y_offset: int) -> Image:
     img = original.copy()
     data = original.tobytes()
     draw = PIL.ImageDraw.Draw(img)
     for row in range(c.BOARD_ROWS):
-        y = p.OFFSET[1] + row * p.BLOCK_SIZE[1] + y_offset
+        y = p.y(row, y_offset)
         draw.rectangle((0, y - 1, img.size[0], y + 1))
         for col in range(c.BOARD_COLS):
-            block, x = get_block_at(data, col, y, p)
+            x = p.x(col)
             draw.rectangle((x - 1, y - 1, x + MATCH_PIXELS + 1, y + 1))
+            block = get_block_at(data, p, x=x, y=y)
             if block == p.Block.EMPTY:
                 continue
             color = t.cast(t.Tuple[int, int, int], tuple(block.value[:3]))
@@ -209,20 +226,16 @@ def draw_debug(
             dx, dy = w // 4, h // 4
             draw.rectangle((x1, y1, x2, y2), outline=color)
             draw.rectangle((x1 + dx, y1 + dy, x2 - dx, y2 - dy), fill=color)
-    img.crop(
-        (
-            p.OFFSET[0],
-            p.BLOCKS_Y_RANGE[1],
-            p.OFFSET[0] + p.WIDTH,
-            p.BLOCKS_Y_RANGE[0],
-        )
-    ).save(f"debug_{img.height}_{y_offset}_{board.serialize()}.png")
+    return img.crop(
+        (p.OFFSET[0], p.BLOCKS_Y_RANGE[1], p.OFFSET[0] + p.WIDTH, p.BLOCKS_Y_RANGE[0])
+    )
 
 
 def find_y_offset(data: bytes, p: t.Type[Parameters]) -> int:
     for y in range(*p.BLOCKS_Y_RANGE):
         for col in range(c.BOARD_COLS):
-            block, x = get_block_at(data, col, y, p)
+            x = p.x(col)
+            block = get_block_at(data, p, x=x, y=y)
             if block is p.Block.EMPTY:
                 continue
             row, y_offset = divmod(y - p.BLOCKS_Y_RANGE[1], p.BLOCK_SIZE[1])
@@ -232,12 +245,19 @@ def find_y_offset(data: bytes, p: t.Type[Parameters]) -> int:
     return -1
 
 
+# fmt: off
 def get_block_at(
-    data: bytes, col: int, y: int, p: t.Type[Parameters]
-) -> t.Tuple[Parameters.Block, int]:
-    x = p.OFFSET[0] + col * p.BLOCK_SIZE[0] + p.MATCH_X_OFFSET
-    d = BPP * (p.SIZE[0] * y + x)
-    return p.Block.match(data[d : d + MATCH_PIXELS * BPP], MATCH_PIXELS), x
+    data: bytes,
+    p: t.Type[Parameters],
+    col: int = -1, row: int = -1, y_offset: int = -1,
+    x: int = -1, y: int = -1,
+) -> Parameters.Block:
+    if x < 0: x = p.x(col)
+    if y < 0: y = p.y(row, y_offset)
+    d = BPP * (p.GAME_SIZE[0] * y + x)
+    # TODO: replace resolution-quirk "aliases"
+    return p.Block.match(data[d : d + MATCH_PIXELS * BPP], MATCH_PIXELS)
+# fmt: on
 
 
 def get_screen_size() -> Size:
@@ -252,8 +272,8 @@ def get_parameters(size: Size) -> t.Type[Parameters]:
             size,
             tuple(PARAMETERS.keys()),
         )
-    if cls.SIZE == (0, 0):
-        cls.SIZE = size
+    if cls.GAME_SIZE == (0, 0):
+        cls.GAME_SIZE = size
         # Derived constants
         cls.WIDTH = cls.BLOCK_SIZE[0] * c.BOARD_COLS
         cls.MATCH_X_OFFSET = (cls.BLOCK_SIZE[0] - MATCH_PIXELS) // 2
