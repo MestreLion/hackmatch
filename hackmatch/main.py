@@ -59,7 +59,7 @@ def main(argv: t.Optional[t.List[str]] = None) -> None:
         logging.basicConfig(
             level=args.loglevel,
             datefmt="%Y-%m-%d %H:%M:%S",
-            format="[%(asctime)s %(levelname)-6.6s] %(name)-15s: %(message)s",
+            format="[%(asctime)s %(levelname)-6.6s] %(message)s",
         )
         log.debug(args)
         c.init(args)

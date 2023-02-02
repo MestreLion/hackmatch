@@ -230,8 +230,8 @@ def find_y_offset(
             if block is Block.EMPTY:
                 continue
             row, y_offset = divmod(y - p.BLOCKS_Y_RANGE[1], p.BLOCK_SIZE[1])
-            log.info("Board Y Offset: %2s, Pixel%s Board%s %s",
-                     y_offset, (x, y), (col, row), block)  # fmt: skip
+            log.debug("Y Offset: %2s, Pixel%s Board%s %s",
+                      y_offset, (x, y), (col, row), block)  # fmt: skip
             return y_offset, col, row, block
     return -1, -1, -1, Block.EMPTY
 
