@@ -157,10 +157,11 @@ class GameWindow:
         else:
             img = PIL.Image.open(c.args.path).convert(mode="RGB")
         size = img.size
-        params = get_parameters(size)
         if size != self.prev_size:
             log.info("Game window resized: %s", self)
             self.prev_size = size
+        # TODO: catch HMError and warn the first time, start timer to re-raise
+        params = get_parameters(size)
         data: bytes = img.tobytes()
         assert len(data) == size[0] * size[1] * BPP
         y_offset = find_y_offset(data, params)
@@ -177,7 +178,7 @@ class GameWindow:
         if board != self.board:
             self.board = board
             if c.args.debug:
-                draw_debug(img, y_offset, board)
+                draw_debug(img, y_offset, board, params)
 
         return board
 
@@ -185,11 +186,12 @@ class GameWindow:
         ...
 
 
-def draw_debug(original_image: Image, y_offset: int, board: ai.Board) -> None:
-    img = original_image.copy()
-    data = original_image.tobytes()
+def draw_debug(
+    original: Image, y_offset: int, board: ai.Board, p: t.Type[Parameters]
+) -> None:
+    img = original.copy()
+    data = original.tobytes()
     draw = PIL.ImageDraw.Draw(img)
-    p = get_parameters(img.size)
     for row in range(c.BOARD_ROWS):
         y = p.OFFSET[1] + row * p.BLOCK_SIZE[1] + y_offset
         draw.rectangle((0, y - 1, img.size[0], y + 1))
@@ -207,7 +209,6 @@ def draw_debug(original_image: Image, y_offset: int, board: ai.Board) -> None:
             dx, dy = w // 4, h // 4
             draw.rectangle((x1, y1, x2, y2), outline=color)
             draw.rectangle((x1 + dx, y1 + dy, x2 - dx, y2 - dy), fill=color)
-
     img.crop(
         (
             p.OFFSET[0],
