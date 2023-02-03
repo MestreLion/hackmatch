@@ -67,11 +67,11 @@ class Parameters:
     class Block(BaseBlock):
         # For 1920x1080
         EMPTY  = b""
-        YELLOW = b"\xeb\xa3\x18"  # RGB(235, 163,  24), HSV( 40, 90, 86+6=92)
-        GREEN  = b"\x12\xba\x9c"  # RGB( 18, 186, 156), HSV(169, 90, 68+5=73)
-        RED    = b"\xdc\x17\x31"  # RGB(220,  23,  49), HSV(352, 90, 80+6=86), R=219, G=22
-        PINK   = b"\xfb\x17\xb8"  # RGB(251,  23, 184), HSV(317, 91, 92+6=98), R=250, G=22
-        BLUE   = b"\x20\x39\x82"  # RGB( 32,  57, 130), HSV(255, 75, 47+4=51)
+        YELLOW = b"\xeb\xa3\x18"  # RGB(235, 163,  24)
+        GREEN  = b"\x12\xba\x9c"  # RGB( 18, 186, 156)
+        RED    = b"\xdc\x17\x31"  # RGB(220,  23,  49)
+        PINK   = b"\xfb\x17\xb8"  # RGB(251,  23, 184)
+        BLUE   = b"\x20\x39\x82"  # RGB( 32,  57, 130)
         Y_BOMB = b"\x1d\x1b\x08"  # RGB( 29,  27,   8)
         G_BOMB = b"\x03\x28\x2d"  # RGB(  3,  40,  45)
         R_BOMB = b"\x42\x09\x0f"  # RGB( 66,   9,  15)
@@ -95,9 +95,9 @@ class Parameters:
 
 class Parameters1920x1080(Parameters):
     BLOCK_SIZE = (72, 72)
-    OFFSET = (440, 151)  # Leftmost block start, Top "shadow" ends + 1
-    HEIGHT = 770  # Board height, including Phage. OFFSET[1] + HEIGHT = Ground
-    MATCH_Y_OFFSET = 56  # Offset from block top to match marker
+    OFFSET = (440, 151)
+    HEIGHT = 770
+    MATCH_Y_OFFSET = 56
 
 
 class Parameters1920x1200(Parameters1920x1080):
@@ -123,7 +123,7 @@ class Parameters1600x900(Parameters):
     MATCH_Y_OFFSET = 46
 
     class Block(BaseBlock):
-        X_GREEN = b"\x12\xba\x9b"  # RGB( 18, 186, 155), alternate color for GREEN
+        X_GREEN = b"\x12\xba\x9b"  # RGB( 18, 186, 155)
         G_BOMB  = b"\x03\x28\x2d"  # RGB(  3,  40,  45)
 
 
@@ -136,10 +136,6 @@ class Parameters1366x768(Parameters):
     class Block(BaseBlock):
         X_GREEN = b"\x12\xba\x9b"  # RGB( 18, 186, 155), same as 1600x900
         G_BOMB  = b"\x03\x28\x2d"  # RGB(  3,  40,  45), same as 1920x1200
-        # ORANGE  = b"\xe7\xa2\x23"  # RGB(231, 162,  35), alternate YELLOW
-        # CRIMSON = b"\xab\x10\x27"  # RGB(171,  16,  39), alternate RED
-        # JEANS   = b"\x32\x3d\x91"  # RGB( 50,  61, 145), alternate BLUE
-        # SALMON  = b"\xf4\x24\xb3"  # RGB(244,  36, 179), alternate PINK
 
 
 PARAMETERS: t.Dict[Size, t.Type[Parameters]] = {
@@ -156,14 +152,14 @@ class WindowNotFoundError(u.HMError):
 
 
 class InvalidValue(u.HMError, ValueError):
-    """Invalid or out-of-bounds value for col, row, x, y, ..."""
+    """Invalid or out-of-bounds value for col, row, x, y, etc"""
 
 
 class GameWindow:
     def __init__(self, window: Window):
         self.window: Window = window
         self.prev_size: Size = self.size
-        self.board: ai.Board = ai.Board()
+        self.prev_board: ai.Board = ai.Board()
 
     def __str__(self) -> str:
         return str(self.window)
@@ -211,6 +207,7 @@ class GameWindow:
         self.window.close()
 
     def to_board(self) -> ai.Board:
+        # TODO: Loop until board != prev (given), wait 20ms between
         if not c.args.path:
             img: Image = self.take_screenshot()
         else:
@@ -235,8 +232,8 @@ class GameWindow:
                 block = get_block_at(data, params, col, row, y_offset)
                 board.set_block(col, row, block.to_ai())
 
-        if board != self.board:
-            self.board = board
+        if board != self.prev_board:
+            self.prev_board = board
             if c.args.debug:
                 draw_debug(img, params, y_offset).save(
                     f"debug_{size[1]}_{y_offset}_{board.serialize()}.png"
@@ -244,6 +241,7 @@ class GameWindow:
         return board
 
     def apply_moves(self, moves: t.List[ai.Move]) -> None:
+        # press, wait 17ms (1 frame in 60FPS), release
         ...
 
 
@@ -317,41 +315,39 @@ def get_parameters(size: Size) -> t.Type[Parameters]:
             size,
             tuple(PARAMETERS.keys()),
         )
-    if cls.GAME_SIZE == (0, 0):
-        cls.GAME_SIZE = size
-        # Derived constants
-        cls.WIDTH = cls.BLOCK_SIZE[0] * c.BOARD_COLS
-        cls.MATCH_X_OFFSET = (cls.BLOCK_SIZE[0] - MATCH_PIXELS) // 2
-        cls.BLOCKS_Y_RANGE = (
-            cls.OFFSET[1] + cls.BLOCK_SIZE[1] * c.BOARD_ROWS,
-            cls.OFFSET[1],
-            -1,
-        )
-        # Wizardry to add default members from the base class in Block enum
-        if cls.Block.__members__.keys() != Parameters.Block.__members__.keys():
-            members = Parameters.Block.__members__.copy()
-            members.update(cls.Block.__members__)
-            # Using cls.Block = enum.Enum(...) makes mypy unhappy.
-            setattr(
-                cls,
-                "Block",
-                enum.Enum("Block", members, qualname=cls.Block.__qualname__, type=BaseBlock),
-            )
+    if cls.GAME_SIZE != (0, 0):
+        return cls  # class already updated
+
+    # Derived constants
+    cls.GAME_SIZE = size
+    cls.WIDTH = cls.BLOCK_SIZE[0] * c.BOARD_COLS
+    cls.MATCH_X_OFFSET = (cls.BLOCK_SIZE[0] - MATCH_PIXELS) // 2
+    cls.BLOCKS_Y_RANGE = (
+        cls.OFFSET[1] + cls.BLOCK_SIZE[1] * c.BOARD_ROWS,
+        cls.OFFSET[1],
+        -1,
+    )
+    # Wizardry to add default members from the base class in Block enum
+    if cls.Block.__members__.keys() != Parameters.Block.__members__.keys():
+        members = Parameters.Block.__members__.copy()
+        members.update(cls.Block.__members__)
+        # Using cls.Block = enum.Enum(...) makes mypy unhappy.
+        setattr(cls, "Block", enum.Enum(
+            "Block", members, qualname=cls.Block.__qualname__, type=BaseBlock
+        ))  # fmt: skip
     return cls
 
 
+# fmt: off
 # Not needed in pywinctl > 0.0.42
 def _patch_ewmh() -> None:
+    def setactivewindow(self: "EWMH", win: t.Any) -> None:
+        self._setProperty("_NET_ACTIVE_WINDOW", [2, 0, win.id], win)
     # noinspection PyProtectedMember
     from pywinctl._pywinctl_linux import EWMH as EWMH
-
-    def setactivewindow(self: EWMH, win: t.Any) -> None:
-        self._setProperty("_NET_ACTIVE_WINDOW", [2, 0, win.id], win)
-
     EWMH.setActiveWindow = types.MethodType(setactivewindow, EWMH)
 
 
 if u.LINUX:
     import types
-
     _patch_ewmh()
