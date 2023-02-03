@@ -52,7 +52,7 @@ class Board:
         return str(self).replace("\n", "-")
 
     def solve(self) -> t.List[Move]:
-        return []
+        return find_match(self)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, self.__class__):
@@ -68,3 +68,20 @@ class Board:
             "".join(str(self.get_block(col, row)) for col in range(c.BOARD_COLS))
             for row in range(c.BOARD_ROWS)
         )
+
+
+def find_match(board: Board) -> t.List[Move]:
+    # Laelath:
+    # Check if initial board has match, return no moves
+    # For each board popped from a deque, starting with initial
+    # get a new board for each possible movement, append move to board moves list
+    # if new board was already seen: ignore it
+    # if new board has match: return its moves
+    # Add board to seen list
+    # Calculate its score. If max, save moves and score
+    # push each new board to deque
+    # repeat until timeout or deque empty
+    # return highest score moves
+    # Scoring: sum of squared block group sizes, minus imbalance squared, +1 if holding
+    # Imbalance: sum of squared differences from each column height to the mean height
+    return []
