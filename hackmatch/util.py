@@ -80,10 +80,11 @@ class FrameRateLimiter:
 
     def sleep(self) -> float:
         start = self._start
-        now = time.perf_counter()
-        diff = 1.0 / self.fps - (now - start)
-        if diff > 0:
-            time.sleep(diff)
+        if self.fps >= 0:
+            now = time.perf_counter()
+            diff = 1.0 / self.fps - (now - start)
+            if diff > 0:
+                time.sleep(diff)
         self._start = time.perf_counter()
         return self._start - start
 
