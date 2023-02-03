@@ -28,7 +28,7 @@ Image: u.TypeAlias = PIL.Image.Image
 Window: u.TypeAlias = pywinctl.Window
 
 BPP: int = 3  # Bits per pixel in Image data (bit depth)
-MATCH_PIXELS = 10  # Pixels in a row to consider a block match
+MATCH_PIXELS = 8  # Pixels in a row to consider a block match
 
 
 class BaseBlock(bytes, enum.Enum):
@@ -38,9 +38,16 @@ class BaseBlock(bytes, enum.Enum):
     # - return item in set(i.value for i in cls) | set (cls)  # caching sets
     @classmethod
     def match(cls: t.Type[_BT], value: bytes, repeat: int = 8) -> _BT:
-        return next((item for item in cls if repeat * item == value), cls(b""))
+        block = next((item for item in cls if repeat * item == value), cls(b""))
+        # Handle "aliases": names with a "X*_NAME*" pattern
+        if block.name[0] == "X":
+            # noinspection PyTypeChecker, buggy PyCharm
+            return cls[block.name.split("_", 1)[-1]]
+        return block
 
     def to_ai(self) -> ai.Block:
+        if self.name[-5:] == "_BOMB":
+            return self.name[0].lower()
         return self.name[0] if self.value else ai.EMPTY
 
 
@@ -65,6 +72,11 @@ class Parameters:
         RED    = b"\xdc\x17\x31"  # RGB(220,  23,  49), HSV(352, 90, 80+6=86), R=219, G=22
         PINK   = b"\xfb\x17\xb8"  # RGB(251,  23, 184), HSV(317, 91, 92+6=98), R=250, G=22
         BLUE   = b"\x20\x39\x82"  # RGB( 32,  57, 130), HSV(255, 75, 47+4=51)
+        Y_BOMB = b"\x1d\x1b\x08"  # RGB( 29,  27,   8)
+        G_BOMB = b"\x03\x28\x2d"  # RGB(  3,  40,  45)
+        R_BOMB = b"\x42\x09\x0f"  # RGB( 66,   9,  15)
+        P_BOMB = b"\x3c\x00\x32"  # RGB( 60,   0,  50)
+        B_BOMB = b"\x09\x04\x33"  # RGB(  9,   4,  51)
 
     @classmethod
     def x(cls, col: int) -> int:
@@ -97,6 +109,11 @@ class Parameters1920x1200(Parameters1920x1080):
         RED    = b"\xd9\x16\x30"  # RGB(217,  22,  48)
         PINK   = b"\xf7\x16\xb6"  # RGB(247,  22, 182)
         BLUE   = b"\x20\x38\x80"  # RGB( 32,  56, 128)
+        Y_BOMB = b"\x1d\x1a\x07"  # RGB( 29,  26,   7)
+        G_BOMB = b"\x03\x27\x2c"  # RGB(  3,  39,  44)
+        R_BOMB = b"\x41\x08\x0e"  # RGB( 65,   8,  14)
+        P_BOMB = b"\x3b\x00\x32"  # RGB( 59,   0,  50)
+        B_BOMB = b"\x08\x04\x33"  # RGB(  8,   4,  51)
 
 
 class Parameters1600x900(Parameters):
@@ -106,7 +123,8 @@ class Parameters1600x900(Parameters):
     MATCH_Y_OFFSET = 46
 
     class Block(BaseBlock):
-        TEAL   = b"\x12\xba\x9b"  # RGB( 18, 186, 155), alternate color for GREEN
+        X_GREEN = b"\x12\xba\x9b"  # RGB( 18, 186, 155), alternate color for GREEN
+        G_BOMB  = b"\x03\x28\x2d"  # RGB(  3,  40,  45)
 
 
 class Parameters1366x768(Parameters):
@@ -116,8 +134,9 @@ class Parameters1366x768(Parameters):
     MATCH_Y_OFFSET = 40
 
     class Block(BaseBlock):
+        X_GREEN = b"\x12\xba\x9b"  # RGB( 18, 186, 155), same as 1600x900
+        G_BOMB  = b"\x03\x28\x2d"  # RGB(  3,  40,  45), same as 1920x1200
         # ORANGE  = b"\xe7\xa2\x23"  # RGB(231, 162,  35), alternate YELLOW
-        TEAL      = b"\x12\xba\x9b"  # RGB( 18, 186, 155), alternate GREEN
         # CRIMSON = b"\xab\x10\x27"  # RGB(171,  16,  39), alternate RED
         # JEANS   = b"\x32\x3d\x91"  # RGB( 50,  61, 145), alternate BLUE
         # SALMON  = b"\xf4\x24\xb3"  # RGB(244,  36, 179), alternate PINK
@@ -201,9 +220,11 @@ class GameWindow:
             log.info("Game window resized: %s", self)
             self.prev_size = size
         # TODO: catch HMError and warn the first time, start timer to re-raise
+
         params = get_parameters(size)
         data: bytes = img.tobytes()
         assert len(data) == size[0] * size[1] * BPP
+
         y_offset = find_y_offset(data, params)
         if y_offset < 0:
             return ai.Board()
@@ -280,7 +301,6 @@ def get_block_at(
     if x < 0: x = p.x(col)
     if y < 0: y = p.y(row, y_offset)
     d = BPP * (p.GAME_SIZE[0] * y + x)
-    # TODO: replace resolution-quirk "aliases"
     return p.Block.match(data[d : d + MATCH_PIXELS * BPP], MATCH_PIXELS)
 # fmt: on
 
