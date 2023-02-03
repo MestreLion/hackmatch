@@ -47,7 +47,11 @@ else:
     LINUX = True
 
     def _run_file(path: str) -> None:
-        subprocess.run(("xdg-open", path), capture_output=True, check=True)
+        try:
+            # Timeout to safeguard against xdg-open blocking until launched application exits
+            subprocess.run(("xdg-open", path), capture_output=True, check=True, timeout=1)
+        except subprocess.TimeoutExpired:
+            pass
 
 
 class HMError(Exception):

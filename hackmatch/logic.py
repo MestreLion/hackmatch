@@ -33,18 +33,13 @@ def bot() -> None:
     assert window is not None
     log.info("Game window: %s", window)
 
-    prev: t.Optional[ai.Board] = None
-    timer = u.FrameRateLimiter(1)  # c.config["bot_fps"]
     while True:
-        board: ai.Board = window.to_board()
-        if board != prev:
-            log.info("Board:\n%s", board)
-            moves = board.solve()
-            if moves:
-                log.info("Moves: %s", moves)
-            window.apply_moves(moves)
-            prev = board
-        timer.sleep()
+        board: ai.Board = window.new_board()
+        log.info("Board:\n%s", board)
+        moves = board.solve()
+        if moves:
+            log.info("Moves: %s", moves)
+        window.apply_moves(moves)
         if c.args.path:
             break
 
@@ -63,12 +58,12 @@ def get_game_window(launch: bool = True, activate: bool = True) -> t.Optional[gu
                 window.activate(reposition=bool(launched))
             return window
         if not launched:
-            game.launch()
             launched = u.Timer(c.config["game_launch_timeout"])
             log.info(
-                "Game launched, waiting %s seconds for game window",
+                "Launching game and waiting %s seconds for game window",
                 c.config["game_launch_timeout"],
             )
+            game.launch()
         elif launched.expired:
             raise u.HMError(
                 "Game did not start after %s seconds", c.config["game_launch_timeout"]

@@ -33,11 +33,11 @@ class Board:
     def __init__(
         self,
         grid: t.Optional[Grid] = None,
-        phage_col: int = c.BOARD_COLS // 2,
+        phage_col: t.Optional[int] = None,
         held_block: Block = EMPTY,
     ):
-        self.grid: Grid = grid or {}
-        self.phage_col: int = phage_col
+        self.grid: Grid = {} if grid is None else grid
+        self.phage_col: int = c.BOARD_COLS // 2 if phage_col is None else phage_col
         self.held_block: Block = held_block
 
     def get_block(self, col: int, row: int) -> Block:
@@ -58,15 +58,21 @@ class Board:
         if not isinstance(other, self.__class__):
             return NotImplemented
         return (
+            # Phage column does not matter
             self.grid == other.grid
-            and self.phage_col == self.phage_col
             and self.held_block == self.held_block
         )
 
     def __str__(self) -> str:
-        return "\n".join(
-            "".join(str(self.get_block(col, row)) for col in range(c.BOARD_COLS))
-            for row in range(c.BOARD_ROWS)
+        phage_row = ["_"] * c.BOARD_COLS
+        phage_row[self.phage_col] = "@" if self.held_block is EMPTY else self.held_block
+        return (
+            "\n".join(
+                "".join(str(self.get_block(col, row)) for col in range(c.BOARD_COLS))
+                for row in range(c.BOARD_ROWS)
+            )
+            + "\n"
+            + "".join(phage_row)
         )
 
 

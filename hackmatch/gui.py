@@ -26,6 +26,7 @@ Size: u.TypeAlias = t.Tuple[int, int]  # width, height
 Offset: u.TypeAlias = t.Tuple[int, int]  # x, y
 Image: u.TypeAlias = PIL.Image.Image
 Window: u.TypeAlias = pywinctl.Window
+ParamCls: u.TypeAlias = t.Type["Parameters"]
 
 BPP: int = 3  # Bits per pixel in Image data (bit depth)
 MATCH_PIXELS = 8  # Pixels in a row to consider a block match
@@ -47,8 +48,8 @@ class BaseBlock(bytes, enum.Enum):
 
     def to_ai(self) -> ai.Block:
         if self.name[-5:] == "_BOMB":
-            return self.name[0].lower()
-        return self.name[0] if self.value else ai.EMPTY
+            return self.name[0]
+        return self.name[0].lower() if self.value else ai.EMPTY
 
 
 # fmt: off
@@ -59,6 +60,9 @@ class Parameters:
     OFFSET: Offset = (0, 0)  # Leftmost block start, Top "shadow" ends + 1
     HEIGHT: int = 0  # Board height, including Phage. OFFSET[1] + HEIGHT = Ground
     MATCH_Y_OFFSET: int = 0  # Offset from block top to match marker
+    PHAGE_OFFSET: Offset = (0, 0)  # Offset from (column left, window top) to phage marker
+    PHAGE_DATA: bytes = b'fill me!'
+    HELD_Y_OFFSET: int = 0  # Y offset to phage held block marker
     # Derived
     WIDTH: int = 0  # Board width, BLOCK_SIZE[0] * BOARD_COLS
     MATCH_X_OFFSET: int = 0  # Offset from block left using BLOCK_SIZE and MATCH_PIXELS
@@ -138,7 +142,7 @@ class Parameters1366x768(Parameters):
         G_BOMB  = b"\x03\x28\x2d"  # RGB(  3,  40,  45), same as 1920x1200
 
 
-PARAMETERS: t.Dict[Size, t.Type[Parameters]] = {
+PARAMETERS: t.Dict[Size, ParamCls] = {
     (1920, 1080): Parameters1920x1080,
     (1920, 1200): Parameters1920x1200,
     (1600,  900): Parameters1600x900,
@@ -155,11 +159,19 @@ class InvalidValue(u.HMError, ValueError):
     """Invalid or out-of-bounds value for col, row, x, y, etc"""
 
 
+class BoardData(t.NamedTuple):
+    image: Image
+    data: bytes
+    parameters: ParamCls
+    y_offset: t.Optional[int]
+    board: t.Optional[ai.Board]
+
+
 class GameWindow:
     def __init__(self, window: Window):
         self.window: Window = window
         self.prev_size: Size = self.size
-        self.prev_board: ai.Board = ai.Board()
+        self.prev_board: t.Optional[ai.Board] = None
 
     def __str__(self) -> str:
         return str(self.window)
@@ -200,56 +212,130 @@ class GameWindow:
         image = PIL.ImageGrab.grab(bbox, xdisplay="")  # RGBA in macOS
         if image.mode != "RGB":
             image = image.convert(mode="RGB")
+        assert image.size == self.size
         return image
 
     def close(self) -> None:
         log.info("Closing game")
         self.window.close()
 
-    def to_board(self) -> ai.Board:
-        # TODO: Loop until board != prev (given), wait 20ms between
+    def new_board(self) -> ai.Board:
+        clock = u.FrameRateLimiter(1)  # c.config["bot_fps"]
+        while True:
+            *_, board = board_data = self.to_board()
+            if board is not None and board != self.prev_board:
+                if c.args.debug:
+                    save_debug(board_data)
+                self.prev_board = board
+                return board
+            clock.sleep()
+
+    def to_board(self) -> BoardData:
         if not c.args.path:
-            img: Image = self.take_screenshot()
+            image: Image = self.take_screenshot()
         else:
-            img = PIL.Image.open(c.args.path).convert(mode="RGB")
-        size = img.size
+            image = PIL.Image.open(c.args.path).convert(mode="RGB")
+        size = image.size
         if size != self.prev_size:
             log.info("Game window resized: %s", self)
             self.prev_size = size
         # TODO: catch HMError and warn the first time, start timer to re-raise
-
-        params = get_parameters(size)
-        data: bytes = img.tobytes()
-        assert len(data) == size[0] * size[1] * BPP
-
-        y_offset = find_y_offset(data, params)
-        if y_offset < 0:
-            return ai.Board()
-
-        board: ai.Board = ai.Board()
-        for row in range(c.BOARD_ROWS):
-            for col in range(c.BOARD_COLS):
-                block = get_block_at(data, params, col, row, y_offset)
-                board.set_block(col, row, block.to_ai())
-
-        if board != self.prev_board:
-            self.prev_board = board
-            if c.args.debug:
-                draw_debug(img, params, y_offset).save(
-                    f"debug_{size[1]}_{y_offset}_{board.serialize()}.png"
-                )
-        return board
+        return parse_image(image)
 
     def apply_moves(self, moves: t.List[ai.Move]) -> None:
         # press, wait 17ms (1 frame in 60FPS), release
         ...
 
 
-def draw_debug(original: Image, p: t.Type[Parameters], y_offset: int) -> Image:
+def parse_image(image: Image) -> BoardData:
+    size = image.size
+    params = get_parameters(size)
+    data: bytes = image.tobytes()
+    assert len(data) == size[0] * size[1] * BPP
+
+    y_offset = find_y_offset(data, params)
+    if y_offset is None:
+        return BoardData(image, data, params, None, None)
+
+    col = find_phage_column(data, params)
+    block = find_held_block(data, params, col)
+
+    board = ai.Board(phage_col=col, held_block=block.to_ai())
+    for row in range(c.BOARD_ROWS):
+        for col in range(c.BOARD_COLS):
+            block = get_block_at(data, params, col, row, y_offset)
+            board.set_block(col, row, block.to_ai())
+
+    return BoardData(image, data, params, y_offset, board)
+
+
+def find_y_offset(data: bytes, p: ParamCls) -> t.Optional[int]:
+    # TODO: Resolution-specific quirks:
+    #  - 1600x900: green RGB varies in the same image, and can match the top.
+    #    Do not trust for Y offset
+    for y in range(*p.BLOCKS_Y_RANGE):
+        for col in range(c.BOARD_COLS):
+            x = p.x(col)
+            block = get_block_at(data, p, x=x, y=y)
+            if block is p.Block.EMPTY:
+                continue
+            row, y_offset = divmod(y - p.BLOCKS_Y_RANGE[1], p.BLOCK_SIZE[1])
+            log.debug("Y Offset: %2s, Pixel%s Board%s %s",
+                      y_offset, (x, y), (col, row), block)  # fmt: skip
+            return y_offset
+    else:
+        return None
+
+
+def find_phage_column(data: bytes, p: ParamCls) -> t.Optional[int]:
+    # TODO: It's not that simple...
+    for col in range(c.BOARD_COLS):
+        x = p.x(col) + p.PHAGE_OFFSET[0]
+        y = p.PHAGE_OFFSET[1]
+        if get_segment(data, p, x, y, len(p.PHAGE_DATA)) == p.PHAGE_DATA:
+            return col
+    else:
+        return None
+
+
+def find_held_block(data: bytes, p: ParamCls, phage: t.Optional[int]) -> Parameters.Block:
+    # TODO: It's not that simple either...
+    if phage is None:
+        return p.Block.EMPTY
+    return get_block_at(data, p, col=phage, y=p.HELD_Y_OFFSET)
+
+
+# fmt: off
+def get_block_at(
+    data: bytes,
+    p: ParamCls,
+    col: int = -1, row: int = -1, y_offset: int = -1,
+    x: int = -1, y: int = -1,
+) -> Parameters.Block:
+    if x < 0: x = p.x(col)
+    if y < 0: y = p.y(row, y_offset)
+    return p.Block.match(get_segment(data, p, x, y, MATCH_PIXELS), MATCH_PIXELS)
+# fmt: on
+
+
+def get_segment(data: bytes, p: ParamCls, x: int, y: int, pixels: int = 1) -> bytes:
+    d = BPP * (p.GAME_SIZE[0] * y + x)
+    return data[d : d + BPP * pixels]
+
+
+def save_debug(board_data: BoardData) -> None:
+    *_, p, y, b = board_data
+    serial = "" if b is None else f"_{b.serialize()}"
+    draw_debug(board_data).save(f"debug_{p.GAME_SIZE[1]}_{y}{serial}.png")
+
+
+def draw_debug(board_data: BoardData) -> Image:
+    original, data, p, y_offset, _ = board_data
     img = original.copy()
-    data = original.tobytes()
     draw = PIL.ImageDraw.Draw(img)
     for row in range(c.BOARD_ROWS):
+        if y_offset is None:
+            break
         y = p.y(row, y_offset)
         draw.rectangle((0, y - 1, img.size[0], y + 1))
         for col in range(c.BOARD_COLS):
@@ -272,42 +358,11 @@ def draw_debug(original: Image, p: t.Type[Parameters], y_offset: int) -> Image:
     )
 
 
-def find_y_offset(data: bytes, p: t.Type[Parameters]) -> int:
-    # TODO: Resolution-specific quirks:
-    #  - 1600x900: green RGB varies in the same image, and can match the top.
-    #    Do not trust for Y offset
-    for y in range(*p.BLOCKS_Y_RANGE):
-        for col in range(c.BOARD_COLS):
-            x = p.x(col)
-            block = get_block_at(data, p, x=x, y=y)
-            if block is p.Block.EMPTY:
-                continue
-            row, y_offset = divmod(y - p.BLOCKS_Y_RANGE[1], p.BLOCK_SIZE[1])
-            log.debug("Y Offset: %2s, Pixel%s Board%s %s",
-                      y_offset, (x, y), (col, row), block)  # fmt: skip
-            return y_offset
-    return -1
-
-
-# fmt: off
-def get_block_at(
-    data: bytes,
-    p: t.Type[Parameters],
-    col: int = -1, row: int = -1, y_offset: int = -1,
-    x: int = -1, y: int = -1,
-) -> Parameters.Block:
-    if x < 0: x = p.x(col)
-    if y < 0: y = p.y(row, y_offset)
-    d = BPP * (p.GAME_SIZE[0] * y + x)
-    return p.Block.match(data[d : d + MATCH_PIXELS * BPP], MATCH_PIXELS)
-# fmt: on
-
-
 def get_screen_size() -> Size:
     return pywinctl.getScreenSize()
 
 
-def get_parameters(size: Size) -> t.Type[Parameters]:
+def get_parameters(size: Size) -> ParamCls:
     cls = PARAMETERS.get(size)
     if cls is None:
         raise u.HMError(
