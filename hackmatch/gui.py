@@ -161,6 +161,10 @@ class InvalidValueError(u.HMError, ValueError):
     """Invalid or out-of-bounds value for col, row, x, y, etc"""
 
 
+class UnsupportedWindowSizeError(u.HMError, ValueError):
+    """Window size not in PARAMETERS, likely a fluke during window drag"""
+
+
 class BoardData(t.NamedTuple):
     image: Image
     data: bytes
@@ -220,7 +224,6 @@ class GameWindow:
         image = PIL.ImageGrab.grab(bbox, xdisplay="")  # RGBA in macOS
         if image.mode != "RGB":
             image = image.convert(mode="RGB")
-        assert image.size == self.size
         return image
 
     def press_key(self, key: int, interval: float) -> None:
@@ -231,9 +234,21 @@ class GameWindow:
         self.window.close()
 
     def new_board(self) -> ai.Board:
-        clock = u.FrameRateLimiter(1)  # c.config["bot_fps"]
+        fps = 20  # c.config["bot_fps"]
+        clock = u.FrameRateLimiter(fps)
+        error_count = 0
         while True:
-            *_, board = board_data = self.to_board()
+            try:
+                *_, board = board_data = self.to_board()
+            except UnsupportedWindowSizeError as e:
+                # warn every 2 seconds, raise after 10
+                if error_count >= 10 * fps:
+                    raise
+                if error_count % (2 * fps) == 0:
+                    log.warning(e)
+                error_count += 1
+                clock.sleep()
+                continue
             if board is not None and board != self.prev_board:
                 if c.args.debug:
                     save_debug(board_data)
@@ -248,7 +263,7 @@ class GameWindow:
             image = PIL.Image.open(c.args.path).convert(mode="RGB")
         size = image.size
         if size != self.prev_size:
-            log.info("Game window resized: %s", self)
+            log.info("Game window resized: %s", size)
             self.prev_size = size
         # TODO: catch HMError and warn the first time, start timer to re-raise
         return parse_image(image)
@@ -405,7 +420,7 @@ def get_screen_size() -> Size:
 def get_parameters(size: Size) -> ParamCls:
     cls = PARAMETERS.get(size)
     if cls is None:
-        raise u.HMError(
+        raise UnsupportedWindowSizeError(
             "Unsupported game window size: %s, must be one of %s",
             size,
             tuple(PARAMETERS.keys()),
