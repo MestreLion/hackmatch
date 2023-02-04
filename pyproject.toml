@@ -50,6 +50,9 @@ dev = [
     "types-Pillow",
     "types-PyAutoGUI > 0.9.3.2",  # pyScreeze reexport fixes
 ]
+extra = [
+    "pygame",  # to convert SDL2 key codes to PyAutoGui key names
+]
 # -----------------------------------------------------------------------------
 # Entry points
 [project.scripts]

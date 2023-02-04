@@ -18,6 +18,16 @@ else:
     # noinspection PyUnresolvedReferences
     from typing import TypeAlias as TypeAlias
 
+try:
+    # Disable Pygame advertisement. Must be done before importing it
+    # https://github.com/pygame/pygame/commit/18a31449de93866b369893057f1e60330b53da95
+    os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = ""  # the key just need to exist
+    import pygame as pygame
+
+    HAVE_PYGAME = True
+except ImportError:
+    HAVE_PYGAME = False
+
 # Platform detection
 # Bool constants used to encapsulate detection method, currently sys.platform
 # Windows

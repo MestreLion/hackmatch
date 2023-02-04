@@ -74,6 +74,19 @@ def init(parsed_args: argparse.Namespace) -> None:
     if not config["steam_user_id"]:
         config["steam_user_id"] = get_steam_user_id(config["steam_user_name"])
     GAME_CONFIG_PATH = get_game_config_path(config["steam_user_id"])
+    if not u.HAVE_PYGAME:
+        # No keycode to keyname conversion available, so we force the default
+        GAME_SETTINGS.update(
+            {
+                # fmt: off
+                "KeyMapping.Left":   97,  # "a"
+                "KeyMapping.Right": 100,  # "d"
+                "KeyMapping.X":     106,  # "j"
+                "KeyMapping.Y":     107,
+                # "k"
+                # fmt: on
+            }
+        )
 
 
 def get_steam_user_id(steam_user_name: str) -> int:

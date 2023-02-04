@@ -5,7 +5,7 @@
 """
 Game solver
 """
-
+import enum
 import logging
 import typing as t
 
@@ -25,8 +25,20 @@ class InvalidCoordError(u.HMError, ValueError):
     """The specified row or column for a block in the board is invalid"""
 
 
-class Move:
+class Move(enum.Enum):
     """Logic Move"""
+
+    # fmt: off
+    LEFT  = "KeyMapping.Left"
+    RIGHT = "KeyMapping.Right"
+#   START = "KeyMapping.Start"
+    GRAB  = "KeyMapping.X"
+    THROW = "KeyMapping.X"
+    SWAP  = "KeyMapping.Y"
+    # fmt: on
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}.{self.name}>"
 
 
 class Board:

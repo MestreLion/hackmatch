@@ -11,10 +11,12 @@ import logging
 import typing as t
 
 import PIL.Image, PIL.ImageGrab, PIL.ImageDraw
+import pyautogui
 import pywinctl
 
 from . import ai
 from . import config as c
+from . import game
 from . import util as u
 
 
@@ -85,15 +87,15 @@ class Parameters:
     @classmethod
     def x(cls, col: int) -> int:
         if not 0 <= col < c.BOARD_COLS:
-            raise InvalidValue("Invalid column: %s", col)
+            raise InvalidValueError("Invalid column: %s", col)
         return cls.OFFSET[0] + col * cls.BLOCK_SIZE[0] + cls.MATCH_X_OFFSET
 
     @classmethod
     def y(cls, row: int, y_offset: int) -> int:
         if not 0 <= row < c.BOARD_ROWS:
-            raise InvalidValue("Invalid row: %s", row)
+            raise InvalidValueError("Invalid row: %s", row)
         if not 0 <= y_offset < cls.BLOCK_SIZE[1]:
-            raise InvalidValue("Invalid y offset: %s", y_offset)
+            raise InvalidValueError("Invalid y offset: %s", y_offset)
         return cls.OFFSET[1] + row * cls.BLOCK_SIZE[1] + y_offset
 
 
@@ -155,7 +157,7 @@ class WindowNotFoundError(u.HMError):
     """Game window not found"""
 
 
-class InvalidValue(u.HMError, ValueError):
+class InvalidValueError(u.HMError, ValueError):
     """Invalid or out-of-bounds value for col, row, x, y, etc"""
 
 
@@ -172,6 +174,12 @@ class GameWindow:
         self.window: Window = window
         self.prev_size: Size = self.size
         self.prev_board: t.Optional[ai.Board] = None
+
+        settings: c.GameSettings = game.read_settings()
+        self.keymap: t.Dict[ai.Move, str] = {
+            move: get_keyname(settings[move.value]) for move in ai.Move
+        }
+        log.debug("Keymap: %s", self.keymap)
 
     def __str__(self) -> str:
         return str(self.window)
@@ -214,6 +222,9 @@ class GameWindow:
             image = image.convert(mode="RGB")
         assert image.size == self.size
         return image
+
+    def press_key(self, key: int, interval: float) -> None:
+        ...
 
     def close(self) -> None:
         log.info("Closing game")
@@ -356,6 +367,35 @@ def draw_debug(board_data: BoardData) -> Image:
     return img.crop(
         (p.OFFSET[0], p.BLOCKS_Y_RANGE[1], p.OFFSET[0] + p.WIDTH, p.BLOCKS_Y_RANGE[0])
     )
+
+
+def get_keyname(keycode: t.Union[str, int]) -> str:
+    try:
+        name = _get_keyname(int(keycode))
+    except (ValueError, UnicodeDecodeError):
+        raise InvalidValueError("Invalid key code: %s", keycode)
+    if name not in pyautogui.KEY_NAMES:
+        raise InvalidValueError("Invalid key name: %r, keycode=%r", name, keycode)
+    return name
+
+
+if u.HAVE_PYGAME:
+    # Exapunks uses SDL: https://wiki.libsdl.org/SDL2/SDLKeycodeLookup
+    def _get_keyname(keycode: int) -> str:
+        # "return"->"return", "caps lock"->"capslock", "left ctrl"->"ctrlleft"
+        name = u.pygame.key.name(keycode).split(" ", 1)
+        if name[-1] in ("ctrl", "shift", "alt"):
+            name.reverse()
+        return "".join(name)
+
+else:
+    _keymap = {0x4000004F + i: n for i, n in enumerate(("right", "left", "down", "up"))}
+    _keymap.update(
+        {0x400000E0 + i: f"{n}left" for i, n in enumerate(("ctrl", "shift", "alt"))}
+    )
+
+    def _get_keyname(keycode: int) -> str:
+        return _keymap.get(keycode) or chr(keycode)
 
 
 def get_screen_size() -> Size:
