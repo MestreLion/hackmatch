@@ -4,7 +4,11 @@
 
 """
 Game solver
+
+Solving algorithm taken from Justin Frank
+https://github.com/laelath/hack-match-bot
 """
+import collections
 import enum
 import logging
 import random
@@ -19,7 +23,10 @@ log = logging.getLogger(__name__)
 # Ugly hack, for now...
 Block: u.TypeAlias = str
 EMPTY = "."
-Grid: u.TypeAlias = t.Dict[t.Tuple[int, int], Block]
+
+Coord: u.TypeAlias = t.Tuple[int, int]
+Grid: u.TypeAlias = t.Dict[Coord, Block]
+Group: u.TypeAlias = t.Tuple[t.List[Coord], Block]
 
 
 class InvalidCoordError(u.HMError, ValueError):
@@ -52,6 +59,23 @@ class Board:
         self.grid: Grid = {} if grid is None else grid
         self.phage_col: int = c.BOARD_COLS // 2 if phage_col is None else phage_col
         self.held_block: Block = held_block
+        self._groups: t.List[Group] = []
+
+    @property
+    def groups(self) -> t.List[Group]:
+        if self._groups:
+            return self._groups
+        visited: t.Set[Coord] = set()
+        for col in range(c.BOARD_COLS):
+            for row in range(c.BOARD_ROWS):
+                if (col, row) in visited:
+                    continue
+                block = self.get_block(col, row)
+                ...
+                group: Group = ([(col, row)], block)
+                self._groups.append(group)
+                visited.add((col, row))
+        return self._groups
 
     def get_block(self, col: int, row: int) -> Block:
         return self.grid.get((col, row), EMPTY)
@@ -60,12 +84,6 @@ class Board:
         if not (0 <= col < c.BOARD_COLS and 0 <= row < c.BOARD_ROWS):
             raise InvalidCoordError("Invalid board coordinates: %s", (col, row))
         self.grid[col, row] = block
-
-    def serialize(self) -> str:
-        return str(self).replace("\n", "-")
-
-    def solve(self) -> t.List[Move]:
-        return find_match(self)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, self.__class__):
@@ -88,11 +106,36 @@ class Board:
             + "".join(phage_row)
         )
 
+    def serialize(self) -> str:
+        return str(self).replace("\n", "-")
 
-def find_match(board: Board) -> t.List[Move]:
-    # Laelath:
-    # Check if initial board has match, return no moves
-    # For each board popped from a deque, starting with initial
+    def solve(self) -> t.List[Move]:
+        return solve(self)
+
+    def has_match(self) -> bool:
+        return any(len(group[0]) >= block_match_size(group[1]) for group in self.groups)
+
+    def score(self) -> float:
+        """Sum of squared block group sizes, minus imbalance squared, +1 if holding"""
+        return (
+            sum(len(group[0]) ** 2 for group in self.groups)
+            - self.imbalance() ** 2
+            + (0 if self.held_block is EMPTY else 1)
+        )
+
+    def imbalance(self) -> float:
+        """Sum of squared differences from each column height to the mean height"""
+        heights: t.List[int] = []
+        ...
+        mean = sum(heights) / len(heights)
+        return sum((heights[col] - mean) ** 2 for col in heights)
+
+
+def solve(board: Board) -> t.List[Move]:
+    moves: t.List[Move] = []
+    if board.has_match():
+        return moves
+    queue = collections.deque([board])
     # get a new board for each possible movement, append move to board moves list
     # if new board was already seen: ignore it
     # if new board has match: return its moves
@@ -101,14 +144,20 @@ def find_match(board: Board) -> t.List[Move]:
     # push each new board to deque
     # repeat until timeout or deque empty
     # return highest score moves
-    # Scoring: sum of squared block group sizes, minus imbalance squared, +1 if holding
-    # Imbalance: sum of squared differences from each column height to the mean height
+    return deep_blue(board)
 
-    # Such an impressive AI!
-    moves = []
+
+def deep_blue(board: Board) -> t.List[Move]:
+    """An impressive, modern AI capable of scoring up to 10,000!"""
+    moves: t.List[Move] = []
     while len(moves) < 30:
-        moves.extend([Move.SWAP, Move.GRAB])
+        moves.extend(random.choice(([Move.SWAP],) + 3 * ([Move.SWAP, Move.GRAB],)))
         moves.extend(
-            [random.choice((Move.LEFT, Move.RIGHT))] * random.randint(1, c.BOARD_COLS // 2)
+            [random.choice((Move.LEFT, Move.RIGHT))]
+            * random.randint(0, (c.BOARD_COLS // 2) + 1)
         )
     return moves
+
+
+def block_match_size(block: Block) -> int:
+    return 2 if block.isupper() else 4  # Ewww! We really need a Block class, fast!
