@@ -7,6 +7,7 @@ Game solver
 """
 import enum
 import logging
+import random
 import typing as t
 
 from . import config as c
@@ -102,4 +103,12 @@ def find_match(board: Board) -> t.List[Move]:
     # return highest score moves
     # Scoring: sum of squared block group sizes, minus imbalance squared, +1 if holding
     # Imbalance: sum of squared differences from each column height to the mean height
-    return []
+
+    # Such an impressive AI!
+    moves = []
+    while len(moves) < 30:
+        moves.extend([Move.SWAP, Move.GRAB])
+        moves.extend(
+            [random.choice((Move.LEFT, Move.RIGHT))] * random.randint(1, c.BOARD_COLS // 2)
+        )
+    return moves
