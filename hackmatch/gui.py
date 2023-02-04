@@ -33,6 +33,9 @@ ParamCls: u.TypeAlias = t.Type["Parameters"]
 BPP: int = 3  # Bits per pixel in Image data (bit depth)
 MATCH_PIXELS = 8  # Pixels in a row to consider a block match
 
+# Delay after each key event (Down and Up), in seconds. Full key press = 2 * PAUSE
+pyautogui.PAUSE = 0.017  # 17ms = 60 FPS. Default = 0.1 = 100ms = 10 FPS
+
 
 class BaseBlock(bytes, enum.Enum):
     # If value-based Enum.___contains__() is needed in Python < 3.12,
@@ -226,9 +229,6 @@ class GameWindow:
             image = image.convert(mode="RGB")
         return image
 
-    def press_key(self, key: int, interval: float) -> None:
-        ...
-
     def close(self) -> None:
         log.info("Closing game")
         self.window.close()
@@ -269,8 +269,8 @@ class GameWindow:
         return parse_image(image)
 
     def apply_moves(self, moves: t.List[ai.Move]) -> None:
-        # press, wait 17ms (1 frame in 60FPS), release
-        ...
+        for move in moves:
+            press_key(self.keymap[move])
 
 
 def parse_image(image: Image) -> BoardData:
@@ -382,6 +382,12 @@ def draw_debug(board_data: BoardData) -> Image:
     return img.crop(
         (p.OFFSET[0], p.BLOCKS_Y_RANGE[1], p.OFFSET[0] + p.WIDTH, p.BLOCKS_Y_RANGE[0])
     )
+
+
+def press_key(keyname: str) -> None:
+    # pyautogui.press() does not work: no delay between its keyDown and keyUp
+    pyautogui.keyDown(keyname)
+    pyautogui.keyUp(keyname)
 
 
 def get_keyname(keycode: t.Union[str, int]) -> str:
