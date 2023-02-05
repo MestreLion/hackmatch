@@ -134,13 +134,39 @@ class Board:
     def serialize(self) -> str:
         return str(self).replace("\n", "-")
 
+    @staticmethod
+    def adjacents(col: int, row: int) -> t.List[Coord]:
+        coords: t.List[Coord] = []
+        for offset in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            coord = (col + offset[0], row + offset[1])
+            if 0 <= coord[0] < c.BOARD_COLS and 0 <= coord[1] < c.BOARD_ROWS:
+                coords.append(coord)
+        return coords
+
     def solve(self) -> t.List[Move]:
         return solve(self)
 
     def groups(self) -> t.List[Group]:
+        def invite(coord: Coord, group: Group) -> None:
+            block = self.get_block(*coord)
+            if block and coord not in grouped and block == group.block:
+                grouped.add(coord)
+                if not group.coords:
+                    self._groups.append(group)
+                group.coords.append(coord)
+                for adjacent in self.adjacents(*coord):
+                    invite(adjacent, group)
+
         if self._groups:
             return self._groups
-        ...
+        grouped: t.Set[Coord] = set()
+        for col in range(c.BOARD_COLS):
+            for row in range(c.BOARD_ROWS):
+                invite((col, row), Group(self.get_block(col, row), []))
+        log.debug(
+            "Groups:\n\t%s",
+            "\n\t".join(f"{group.block!r}: {group.coords}" for group in self._groups),
+        )
         return self._groups
 
     def has_match(self) -> bool:
@@ -156,8 +182,10 @@ class Board:
 
     def imbalance(self) -> float:
         """Sum of squared differences from each column height to the mean height"""
-        heights: t.List[int] = []
-        ...
+        heights: t.List[int] = [
+            sum(1 if self.get_block(col, row) else 0 for row in range(c.BOARD_ROWS))
+            for col in range(c.BOARD_COLS)
+        ]
         mean = sum(heights) / len(heights)
         return sum((heights[col] - mean) ** 2 for col in heights)
 
