@@ -359,11 +359,14 @@ def draw_debug(board_data: BoardData) -> Image:
     original, data, p, y_offset, _ = board_data
     img = original.copy()
     draw = PIL.ImageDraw.Draw(img)
+    draw.rectangle(
+        (p.OFFSET[0], p.BLOCKS_Y_RANGE[1], p.OFFSET[0] + p.WIDTH, p.BLOCKS_Y_RANGE[0])
+    )
     for row in range(c.BOARD_ROWS):
         if y_offset is None:
             break
         y = p.y(row, y_offset)
-        draw.rectangle((0, y - 1, img.size[0], y + 1))
+        draw.rectangle((p.OFFSET[0], y - 1, p.OFFSET[0] + p.WIDTH, y + 1))
         for col in range(c.BOARD_COLS):
             x = p.x(col)
             draw.rectangle((x - 1, y - 1, x + MATCH_PIXELS + 1, y + 1))
@@ -377,11 +380,10 @@ def draw_debug(board_data: BoardData) -> Image:
             x2 = x1 + w - 1
             y2 = y1 + h - 1
             dx, dy = w // 4, h // 4
+            ds = 3
             draw.rectangle((x1, y1, x2, y2), outline=color)
-            draw.rectangle((x1 + dx, y1 + dy, x2 - dx, y2 - dy), fill=color)
-    return img.crop(
-        (p.OFFSET[0], p.BLOCKS_Y_RANGE[1], p.OFFSET[0] + p.WIDTH, p.BLOCKS_Y_RANGE[0])
-    )
+            draw.rectangle((x1 + dx + ds, y1 + dy, x2 - dx, y2 - dy - ds), fill=color)
+    return img
 
 
 def press_key(keyname: str) -> None:
