@@ -20,10 +20,6 @@ from . import util as u
 log = logging.getLogger(__name__)
 
 
-# Ugly hack, for now...
-Block: u.TypeAlias = str
-EMPTY = "."
-
 Coord: u.TypeAlias = t.Tuple[int, int]
 Grid: u.TypeAlias = t.Dict[Coord, Block]
 Group: u.TypeAlias = t.Tuple[t.List[Coord], Block]
@@ -31,6 +27,31 @@ Group: u.TypeAlias = t.Tuple[t.List[Coord], Block]
 
 class InvalidCoordError(u.HMError, ValueError):
     """The specified row or column for a block in the board is invalid"""
+
+
+class Block(str, enum.Enum):
+    # str base so EMPTY can be Falsy, values are otherwise irrelevant
+    # So chosen as their str representation for convenience
+    EMPTY = ""
+    YELLOW = "y"
+    GREEN = "g"
+    RED = "r"
+    PINK = "p"
+    BLUE = "b"
+    Y_BOMB = "Y"
+    G_BOMB = "G"
+    R_BOMB = "R"
+    P_BOMB = "P"
+    B_BOMB = "B"
+
+    def __str__(self) -> str:
+        return self.value if self else "."
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}.{self.name}>"
+
+    def match_size(self) -> int:
+        return 2 if self.name[:-5] == "_BOMB" else 4
 
 
 class Move(enum.Enum):
@@ -54,7 +75,7 @@ class Board:
         self,
         grid: t.Optional[Grid] = None,
         phage_col: t.Optional[int] = None,
-        held_block: Block = EMPTY,
+        held_block: Block = Block.EMPTY,
     ):
         self.grid: Grid = {} if grid is None else grid
         self.phage_col: int = c.BOARD_COLS // 2 if phage_col is None else phage_col
@@ -78,7 +99,7 @@ class Board:
         return self._groups
 
     def get_block(self, col: int, row: int) -> Block:
-        return self.grid.get((col, row), EMPTY)
+        return self.grid.get((col, row), Block.EMPTY)
 
     def set_block(self, col: int, row: int, block: Block) -> None:
         if not (0 <= col < c.BOARD_COLS and 0 <= row < c.BOARD_ROWS):
@@ -96,7 +117,7 @@ class Board:
 
     def __str__(self) -> str:
         phage_row = ["_"] * c.BOARD_COLS
-        phage_row[self.phage_col] = "@" if self.held_block is EMPTY else self.held_block
+        phage_row[self.phage_col] = str(self.held_block) if self.held_block else "@"
         return (
             "\n".join(
                 "".join(str(self.get_block(col, row)) for col in range(c.BOARD_COLS))
@@ -120,7 +141,7 @@ class Board:
         return (
             sum(len(group[0]) ** 2 for group in self.groups)
             - self.imbalance() ** 2
-            + (0 if self.held_block is EMPTY else 1)
+            + (1 if self.held_block else 0)
         )
 
     def imbalance(self) -> float:
@@ -157,7 +178,3 @@ def deep_blue(board: Board) -> t.List[Move]:
             * random.randint(0, (c.BOARD_COLS // 2) + 1)
         )
     return moves
-
-
-def block_match_size(block: Block) -> int:
-    return 2 if block.isupper() else 4  # Ewww! We really need a Block class, fast!

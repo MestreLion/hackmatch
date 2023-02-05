@@ -52,9 +52,7 @@ class BaseBlock(bytes, enum.Enum):
         return block
 
     def to_ai(self) -> ai.Block:
-        if self.name[-5:] == "_BOMB":
-            return ai.Block(self.name[0])
-        return ai.Block(self.name[0].lower()) if self.value else ai.Block(ai.EMPTY)
+        return ai.Block[self.name]
 
 
 # fmt: off
