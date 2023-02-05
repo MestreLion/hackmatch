@@ -266,7 +266,7 @@ class GameWindow:
         # TODO: catch HMError and warn the first time, start timer to re-raise
         return parse_image(image)
 
-    def apply_moves(self, moves: t.List[ai.Move]) -> None:
+    def send_moves(self, moves: t.List[ai.Move]) -> None:
         for move in moves:
             press_key(self.keymap[move])
 

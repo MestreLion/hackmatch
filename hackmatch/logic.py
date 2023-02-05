@@ -39,9 +39,9 @@ def bot() -> None:
         moves = board.solve()
         if moves:
             log.info("Moves: %s", moves)
-        window.apply_moves(moves)
         if c.args.path:
             break
+        window.send_moves(moves)
 
 
 def get_game_window(launch: bool = True, activate: bool = True) -> t.Optional[gui.GameWindow]:
