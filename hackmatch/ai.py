@@ -17,6 +17,7 @@ import typing as t
 from . import config as c
 from . import util as u
 
+MAX_SOLVE_TIME = 0.170  # ~10 frames @ 60 FPS
 
 Coord: u.TypeAlias = t.Tuple[int, int]
 Grid: u.TypeAlias = t.Dict[Coord, "Block"]
@@ -216,25 +217,37 @@ class Board:
         log.debug("Heights: %s", self.heights())
         log.debug("Imbalance: %s", self.imbalance())
         log.debug("Score: %s", self.score())
-        log.debug("Moves: %s", self.moves)
+        log.debug("Moves (%s): %s", len(self.moves), self.moves)
 
 
 def solve(board: Board) -> t.List[Move]:
     if board.has_match():
         return board.moves
-    queue: t.Deque[Board] = collections.deque([board])
     boards: t.Set[Board] = {board}
     best: Candidate = Candidate(board=board, score=board.score())
-
-    # get a new board for each possible movement, append move to board moves list
-    # if new board was already seen: ignore it
-    # if new board has match: return its moves
-    # Add board to seen list
-    # Calculate its score. If max, save moves and score
-    # push each new board to deque
-    # repeat until timeout or deque empty
-    # return highest score moves
-    best.board.debug("New board after solving")
+    queue: t.Deque[Board] = collections.deque([board])  # First in, first out
+    timer = u.Timer(MAX_SOLVE_TIME)
+    steps = 0
+    while queue and not timer.expired:
+        parent = queue.popleft()
+        if len(parent.moves) > steps:
+            steps += 1
+        # Get a new board for each possible movement
+        for move in Move:
+            board = parent.clone()
+            board.move(move)
+            if board in boards:
+                # Ignore duplicated boards
+                continue
+            if board.has_match():
+                return board.moves
+            boards.add(board)
+            score = board.score()
+            if score > best.score:
+                best = Candidate(board=board, score=score)
+            queue.append(board)
+    log.debug("Explored %s boards, %s moves deep", len(boards), steps)
+    best.board.debug("New board")
     return best.board.moves or deep_blue(board)
 
 
