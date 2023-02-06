@@ -17,11 +17,11 @@ import typing as t
 from . import config as c
 from . import util as u
 
-log = logging.getLogger(__name__)
-
 
 Coord: u.TypeAlias = t.Tuple[int, int]
 Grid: u.TypeAlias = t.Dict[Coord, "Block"]
+
+log = logging.getLogger(__name__)
 
 
 class InvalidCoordError(u.HMError, ValueError):
@@ -74,9 +74,9 @@ class Group(t.NamedTuple):
     coords: t.List[Coord]
 
 
-class Path(t.NamedTuple):
-    moves: t.List[Move]
-    score: int
+class Candidate(t.NamedTuple):
+    board: "Board"
+    score: float
 
 
 class Board:
@@ -90,9 +90,13 @@ class Board:
         self.grid: Grid = {} if grid is None else grid
         self.phage_col: int = c.BOARD_COLS // 2 if phage_col is None else phage_col
         self.held_block: Block = held_block
-        self.moves: t.List[Move] = [] if moves is None else moves
-        self._groups: t.List[Group] = []
+        self._moves: t.List[Move] = [] if moves is None else moves
+        self._groups: t.List[Group] = []  # cached for performance
         # self._score: int = 0
+
+    @property
+    def moves(self) -> t.List[Move]:
+        return self._moves
 
     def get_block(self, col: int, row: int) -> Block:
         return self.grid.get((col, row), Block.EMPTY)
@@ -100,6 +104,9 @@ class Board:
     def set_block(self, col: int, row: int, block: Block) -> None:
         if not (0 <= col < c.BOARD_COLS and 0 <= row < c.BOARD_ROWS):
             raise InvalidCoordError("Invalid board coordinates: %s", (col, row))
+        # For correctness this should also reset _groups cache.
+        # Ignoring for performance as this is only called when parsing from image
+        # (when cache is not used) and from move(), which performs the reset itself.
         self.grid[col, row] = block
 
     def clone(self) -> "Board":
@@ -110,13 +117,25 @@ class Board:
             self.moves.copy(),
         )
 
+    def move(self, move: Move) -> None:
+        self._moves.append(move)
+        ...
+        self._groups = []  # invalidate cache
+
     def __eq__(self, other: object) -> bool:
+        """Equivalence when parsing blocks from image, ignores phage column and moves"""
         if not isinstance(other, self.__class__):
             return NotImplemented
-        return (
-            # Phage column does not matter
-            self.grid == other.grid
-            and self.held_block == self.held_block
+        return self.grid == other.grid and self.held_block == self.held_block
+
+    def __hash__(self) -> int:
+        """Identity when solving the board, ignores moves list"""
+        return hash(
+            (
+                tuple((coord, block) for (coord, block) in self.grid.items() if block),
+                self.phage_col,
+                self.held_block,
+            )
         )
 
     def __str__(self) -> str:
@@ -146,6 +165,12 @@ class Board:
     def solve(self) -> t.List[Move]:
         return solve(self)
 
+    def heights(self) -> t.List[int]:
+        return list(
+            sum(1 if self.get_block(col, row) else 0 for row in range(c.BOARD_ROWS))
+            for col in range(c.BOARD_COLS)
+        )
+
     def groups(self) -> t.List[Group]:
         def invite(coord: Coord, group: Group) -> None:
             block = self.get_block(*coord)
@@ -163,10 +188,6 @@ class Board:
         for col in range(c.BOARD_COLS):
             for row in range(c.BOARD_ROWS):
                 invite((col, row), Group(self.get_block(col, row), []))
-        log.debug(
-            "Groups:\n\t%s",
-            "\n\t".join(f"{group.block!r}: {group.coords}" for group in self._groups),
-        )
         return self._groups
 
     def has_match(self) -> bool:
@@ -182,19 +203,29 @@ class Board:
 
     def imbalance(self) -> float:
         """Sum of squared differences from each column height to the mean height"""
-        heights: t.List[int] = [
-            sum(1 if self.get_block(col, row) else 0 for row in range(c.BOARD_ROWS))
-            for col in range(c.BOARD_COLS)
-        ]
+        heights = self.heights()
         mean = sum(heights) / len(heights)
-        return sum((heights[col] - mean) ** 2 for col in heights)
+        return sum((height - mean) ** 2 for height in heights)
+
+    def debug(self, caption="Board") -> None:
+        log.debug("%s:\n%s", caption, self)
+        log.debug(
+            "Groups:\n\t%s",
+            "\n\t".join(f"{group.block!r}: {group.coords}" for group in self.groups()),
+        )
+        log.debug("Heights: %s", self.heights())
+        log.debug("Imbalance: %s", self.imbalance())
+        log.debug("Score: %s", self.score())
+        log.debug("Moves: %s", self.moves)
 
 
 def solve(board: Board) -> t.List[Move]:
     if board.has_match():
-        return []
-    best = Path(moves=[], score=0)
-    queue = collections.deque([board])
+        return board.moves
+    queue: t.Deque[Board] = collections.deque([board])
+    boards: t.Set[Board] = {board}
+    best: Candidate = Candidate(board=board, score=board.score())
+
     # get a new board for each possible movement, append move to board moves list
     # if new board was already seen: ignore it
     # if new board has match: return its moves
@@ -203,9 +234,8 @@ def solve(board: Board) -> t.List[Move]:
     # push each new board to deque
     # repeat until timeout or deque empty
     # return highest score moves
-    if best.moves:
-        return best.moves
-    return deep_blue(board)
+    best.board.debug("New board after solving")
+    return best.board.moves or deep_blue(board)
 
 
 def deep_blue(board: Board) -> t.List[Move]:
