@@ -21,6 +21,8 @@ from . import util as u
 
 
 log = logging.getLogger(__name__)
+# Silence PIL debug messages when saving PNGs
+logging.getLogger("PIL.PngImagePlugin").setLevel(logging.WARNING)
 
 _BT = t.TypeVar("_BT", bound="BaseBlock")
 BBox: u.TypeAlias = t.Tuple[int, int, int, int]  # left, top, right, bottom
@@ -348,8 +350,9 @@ def get_segment(data: bytes, p: ParamCls, x: int, y: int, pixels: int = 1) -> by
 
 
 def save_debug(board_data: BoardData) -> None:
-    *_, p, y, b = board_data
+    img, _, p, y, b = board_data
     serial = "" if b is None else f"_{b.serialize()}"
+    img.save(f"board_{p.GAME_SIZE[1]}_{y}{serial}.png")
     draw_debug(board_data).save(f"debug_{p.GAME_SIZE[1]}_{y}{serial}.png")
 
 
@@ -378,9 +381,11 @@ def draw_debug(board_data: BoardData) -> Image:
             x2 = x1 + w - 1
             y2 = y1 + h - 1
             dx, dy = w // 4, h // 4
-            ds = 3
+            ds = 2
             draw.rectangle((x1, y1, x2, y2), outline=color)
-            draw.rectangle((x1 + dx + ds, y1 + dy, x2 - dx, y2 - dy - ds), fill=color)
+            draw.rectangle(
+                (x1 + dx + ds, y1 + dy - ds, x2 - dx - ds, y2 - dy - ds), fill=color
+            )
     return img
 
 
