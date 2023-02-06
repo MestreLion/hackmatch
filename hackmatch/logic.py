@@ -7,7 +7,6 @@ High-level bot logic
 """
 
 import logging
-import time
 import typing as t
 
 from . import ai
@@ -26,7 +25,7 @@ def bot() -> None:
         window = get_game_window(launch=False, activate=False)
         if window is not None:
             window.close()
-            time.sleep(1)  # so arbitrary!
+            u.Timer(1).wait()  # so arbitrary!
         game.change_settings()
 
     window = get_game_window(activate=(c.args.path is None))
@@ -42,6 +41,7 @@ def bot() -> None:
         if c.args.path:
             break
         window.send_moves(moves)
+        u.Timer(1).wait()  # also arbitrary
 
 
 def get_game_window(launch: bool = True, activate: bool = True) -> t.Optional[gui.GameWindow]:
@@ -68,4 +68,4 @@ def get_game_window(launch: bool = True, activate: bool = True) -> t.Optional[gu
             raise u.HMError(
                 "Game did not start after %s seconds", c.config["game_launch_timeout"]
             )
-        time.sleep(1)
+        u.Timer(1).wait()

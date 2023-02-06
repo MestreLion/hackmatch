@@ -92,7 +92,7 @@ class FrameRateLimiter:
         self.fps: float = fps
         self._start = time.perf_counter()
 
-    def sleep(self) -> float:
+    def wait(self) -> float:
         start = self._start
         if self.fps > 0:
             now = time.perf_counter()
@@ -109,8 +109,19 @@ class Timer:
         self.secs: float = secs
 
     @property
+    def remaining(self) -> float:
+        return self.secs - (time.perf_counter() - self.start)
+
+    @property
     def expired(self) -> bool:
-        return time.perf_counter() - self.start > self.secs
+        return self.remaining < 0
+
+    def wait(self) -> float:
+        remaining = self.remaining
+        if remaining < 0:
+            return 0
+        time.sleep(remaining)
+        return remaining
 
 
 def benchmark(

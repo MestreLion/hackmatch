@@ -31,7 +31,7 @@ def fps_limit(fps: int = 60) -> None:
     try:
         while True:
             i += 1
-            timer.sleep()
+            timer.wait()
     except KeyboardInterrupt:
         pass
     t1 = time.perf_counter()

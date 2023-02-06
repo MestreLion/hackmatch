@@ -245,14 +245,14 @@ class GameWindow:
                 if error_count % (2 * fps) == 0:
                     log.warning(e)
                 error_count += 1
-                clock.sleep()
+                clock.wait()
                 continue
             if board is not None and board != self.prev_board:
                 if c.args.debug:
                     save_debug(board_data)
                 self.prev_board = board
                 return board
-            clock.sleep()
+            clock.wait()
 
     def to_board(self) -> BoardData:
         if not c.args.path:
