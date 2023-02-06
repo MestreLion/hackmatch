@@ -209,11 +209,10 @@ class Board:
         return sum((height - mean) ** 2 for height in heights)
 
     def debug(self, caption="Board") -> None:
+        if not log.level <= logging.DEBUG:
+            return
         log.debug("%s:\n%s", caption, self)
-        log.debug(
-            "Groups:\n\t%s",
-            "\n\t".join(f"{group.block!r}: {group.coords}" for group in self.groups()),
-        )
+        log.debug("Groups: %s", self.groups())
         log.debug("Heights: %s", self.heights())
         log.debug("Imbalance: %s", self.imbalance())
         log.debug("Score: %s", self.score())
@@ -240,7 +239,8 @@ def solve(board: Board) -> t.List[Move]:
                 # Ignore duplicated boards
                 continue
             if board.has_match():
-                return board.moves
+                best = Candidate(board=board, score=0)
+                break
             boards.add(board)
             score = board.score()
             if score > best.score:
