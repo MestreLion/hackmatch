@@ -1,3 +1,5 @@
+*.dot
+*.pstats
 test*
 requirements.txt
 
