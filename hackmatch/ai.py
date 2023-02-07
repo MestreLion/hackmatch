@@ -87,12 +87,13 @@ class Board:
         phage_col: t.Optional[int] = None,
         held_block: Block = Block.EMPTY,
         moves: t.Optional[t.List[Move]] = None,
+        _groups: t.Optional[t.List[Group]] = None,
     ):
         self.grid: Grid = {} if grid is None else grid
         self.phage_col: int = c.BOARD_COLS // 2 if phage_col is None else phage_col
         self.held_block: Block = held_block
         self._moves: t.List[Move] = [] if moves is None else moves
-        self._groups: t.List[Group] = []  # cached for performance
+        self._groups: t.List[Group] = [] if _groups is None else _groups
         # self._score: int = 0
 
     @property
@@ -116,6 +117,7 @@ class Board:
             self.phage_col,
             self.held_block,
             self.moves.copy(),
+            self._groups.copy(),
         )
 
     def lowest_block(self, col: int, up_to: int = 0) -> t.Tuple[int, Block]:
@@ -206,6 +208,9 @@ class Board:
         )
 
     def groups(self) -> t.List[Group]:
+        if self._groups:
+            return self._groups
+
         def invite(coord: Coord, group: Group) -> None:
             block = self.get_block(*coord)
             if block and coord not in grouped and block == group.block:
@@ -216,8 +221,6 @@ class Board:
                 for adjacent in self.adjacents(*coord):
                     invite(adjacent, group)
 
-        if self._groups:
-            return self._groups
         grouped: t.Set[Coord] = set()
         for col in range(c.BOARD_COLS):
             for row in range(c.BOARD_ROWS):
