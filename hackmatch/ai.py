@@ -17,7 +17,7 @@ import typing as t
 from . import config as c
 from . import util as u
 
-MAX_SOLVE_TIME = 0.850  # ~50 frames @ 60 FPS
+MAX_SOLVE_TIME = 0.340  # ~20 frames @ 60 FPS
 
 Coord: u.TypeAlias = t.Tuple[int, int]
 Grid: u.TypeAlias = t.Dict[Coord, "Block"]
@@ -138,7 +138,7 @@ class Board:
         elif move == Move.RIGHT:
             if col < c.BOARD_COLS - 1:
                 self.phage_col += 1
-        elif move == move.SWAP:
+        elif move == Move.SWAP:
             row, block = self.lowest_block(col, 1)
             if row > 0:
                 self.set_block(col, row, self.get_block(col, row - 1))
@@ -233,8 +233,9 @@ class Board:
 
     def score(self) -> float:
         """Sum of squared block group sizes, minus imbalance squared, +1 if holding"""
+        groups = self.groups()
         return (
-            sum(len(group.coords) ** 2 for group in self.groups())
+            sum(len(group.coords) ** 2 for group in groups)  # / len(groups)
             - self.imbalance() ** 2
             + (1 if self.held_block else 0)
         )
@@ -243,9 +244,9 @@ class Board:
         """Sum of squared differences from each column height to the mean height"""
         heights = self.heights()
         mean = sum(heights) / len(heights)
-        return sum((height - mean) ** 2 for height in heights)
+        return sum((height - mean) ** 2 for height in heights) + max(heights) ** 2
 
-    def debug(self, caption="Board") -> None:
+    def debug(self, caption: str = "Board") -> None:
         if not log.level <= logging.DEBUG:
             return
         log.debug("%s:\n%s", caption, self)
@@ -284,17 +285,24 @@ def solve(board: Board) -> t.List[Move]:
                 best = Candidate(board=board, score=score)
             queue.append(board)
     remaining = 0 if timer.expired else timer.remaining
-    if best.has_match:
-        log.debug("MATCH FOUND!")
-    log.debug(
-        "%s boards in queue, %.0fms (%s) remaining",
+    log.info(
+        "%s%s boards in queue, %.0fms (%s) remaining, %s boards explored %s moves deep",
+        "MATCH FOUND! " if best.has_match else "",
         len(queue),
         1000 * remaining,
         f"{remaining / MAX_SOLVE_TIME:.1%}",
+        len(boards),
+        steps,
     )
-    log.debug("Explored %s boards, %s moves deep", len(boards), steps)
     best.board.debug("New board")
-    return best.board.moves or deep_blue(board)
+    # FIXME: Temporary fix until we parse phage col and held block ############
+    best.board.moves.extend(
+        best.board.phage_col * [Move.LEFT] + (c.BOARD_COLS // 2) * [Move.RIGHT]
+    )
+    if best.board.held_block:
+        best.board.moves.append(Move.GRAB)
+    # #########################################################################
+    return best.board.moves  # or deep_blue(board)
 
 
 def deep_blue(board: Board) -> t.List[Move]:

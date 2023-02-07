@@ -41,7 +41,7 @@ def bot() -> None:
         if c.args.path:
             break
         window.send_moves(moves)
-        u.Timer(1).wait()  # also arbitrary
+        u.Timer(0.1).wait()  # also arbitrary
 
 
 def get_game_window(launch: bool = True, activate: bool = True) -> t.Optional[gui.GameWindow]:
