@@ -118,10 +118,43 @@ class Board:
             self.moves.copy(),
         )
 
+    def lowest_block(self, col: int, up_to: int = 0) -> t.Tuple[int, Block]:
+        for row in range(c.BOARD_ROWS - 1, up_to - 1, -1):
+            block = self.get_block(col, row)
+            if block:
+                return row, block
+        else:
+            return -1, Block.EMPTY
+
     def move(self, move: Move) -> None:
         self._moves.append(move)
-        ...
-        self._groups = []  # invalidate cache
+        col = self.phage_col
+        if move == Move.LEFT:
+            if col > 0:
+                self.phage_col -= 1
+        elif move == Move.RIGHT:
+            if col < c.BOARD_COLS - 1:
+                self.phage_col += 1
+        elif move == move.SWAP:
+            row, block = self.lowest_block(col, 1)
+            if row > 0:
+                self.set_block(col, row, self.get_block(col, row - 1))
+                self.set_block(col, row - 1, block)
+                self._groups = []  # invalidate cache
+        else:  # Exchange: move.GRAB/THROW
+            row, block = self.lowest_block(col)
+            if self.held_block:
+                # Throw: lowest block must not be at the lowest row
+                if row < c.BOARD_ROWS - 1:
+                    self.set_block(col, row + 1, self.held_block)
+                    self.held_block = Block.EMPTY
+                    self._groups = []  # invalidate cache
+            else:
+                # Grab: There must be a (non-empty) block in the column
+                if block:
+                    self.set_block(col, row, self.held_block)
+                    self.held_block = block
+                    self._groups = []  # invalidate cache
 
     def __eq__(self, other: object) -> bool:
         """Equivalence when parsing blocks from image, ignores phage column and moves"""
