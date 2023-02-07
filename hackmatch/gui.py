@@ -66,7 +66,7 @@ class Parameters:
     BLOCK_SIZE: Size = (0, 0)  # Block Size
     OFFSET: Offset = (0, 0)  # Leftmost block start, Top "shadow" ends + 1
     HEIGHT: int = 0  # Board height, including Phage. OFFSET[1] + HEIGHT = Ground
-    MATCH_Y_OFFSET: int = 0  # Offset from block top to match marker
+    MATCH_Y_OFFSET: int = 0  # Offset from block top to match marker. Cosmetic, for debug
     PHAGE_OFFSET: Offset = (0, 0)  # Offset from (column left, window top) to phage marker
     PHAGE_DATA: bytes = b'fill me!'
     HELD_Y_OFFSET: int = 0  # Y offset to phage held block marker
@@ -107,7 +107,7 @@ class Parameters:
 class Parameters1920x1080(Parameters):
     BLOCK_SIZE = (72, 72)
     OFFSET = (440, 151)
-    HEIGHT = 770
+    HEIGHT = 770  # Laelath: 810
     MATCH_Y_OFFSET = 56
 
 
@@ -130,7 +130,7 @@ class Parameters1920x1200(Parameters1920x1080):
 class Parameters1600x900(Parameters):
     BLOCK_SIZE = (60, 60)
     OFFSET = (367, 126)
-    HEIGHT = 643
+    HEIGHT = 643  # == fidel-solver
     MATCH_Y_OFFSET = 46
 
     class Block(BaseBlock):

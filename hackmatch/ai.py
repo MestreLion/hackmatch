@@ -18,7 +18,7 @@ from . import config as c
 from . import util as u
 
 # Laelath: MAX_SEARCH_TIME = 110ms
-MAX_SOLVE_TIME = 0.340  # ~20 frames @ 60 FPS
+MAX_SOLVE_TIME = 0.680  # ~40 frames @ 60 FPS
 
 Coord: u.TypeAlias = t.Tuple[int, int]
 Grid: u.TypeAlias = t.Dict[Coord, "Block"]
