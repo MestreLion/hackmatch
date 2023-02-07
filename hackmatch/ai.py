@@ -17,7 +17,7 @@ import typing as t
 from . import config as c
 from . import util as u
 
-MAX_SOLVE_TIME = 0.170  # ~10 frames @ 60 FPS
+MAX_SOLVE_TIME = 0.850  # ~50 frames @ 60 FPS
 
 Coord: u.TypeAlias = t.Tuple[int, int]
 Grid: u.TypeAlias = t.Dict[Coord, "Block"]
@@ -78,6 +78,7 @@ class Group(t.NamedTuple):
 class Candidate(t.NamedTuple):
     board: "Board"
     score: float
+    has_match: bool = False
 
 
 class Board:
@@ -252,21 +253,21 @@ class Board:
         log.debug("Heights: %s", self.heights())
         log.debug("Imbalance: %s", self.imbalance())
         log.debug("Score: %s", self.score())
+        log.debug("Has match? %s", self.has_match())
         log.debug("Moves (%s): %s", len(self.moves), self.moves)
 
 
 def solve(board: Board) -> t.List[Move]:
-    if board.has_match():
-        return board.moves
     boards: t.Set[Board] = {board}
-    best: Candidate = Candidate(board=board, score=board.score())
+    best = Candidate(board=board, score=board.score(), has_match=board.has_match())
     queue: t.Deque[Board] = collections.deque([board])  # First in, first out
     timer = u.Timer(MAX_SOLVE_TIME)
     steps = 0
-    while queue and not timer.expired:
+    while queue and not timer.expired and not best.has_match:
         parent = queue.popleft()
-        if len(parent.moves) > steps:
-            steps += 1
+        length = len(parent.moves)
+        if steps < length + 1:
+            steps = length + 1
         # Get a new board for each possible movement
         for move in Move:
             board = parent.clone()
@@ -275,13 +276,22 @@ def solve(board: Board) -> t.List[Move]:
                 # Ignore duplicated boards
                 continue
             if board.has_match():
-                best = Candidate(board=board, score=0)
+                best = Candidate(board=board, score=0, has_match=True)
                 break
             boards.add(board)
             score = board.score()
             if score > best.score:
                 best = Candidate(board=board, score=score)
             queue.append(board)
+    remaining = 0 if timer.expired else timer.remaining
+    if best.has_match:
+        log.debug("MATCH FOUND!")
+    log.debug(
+        "%s boards in queue, %.0fms (%s) remaining",
+        len(queue),
+        1000 * remaining,
+        f"{remaining / MAX_SOLVE_TIME:.1%}",
+    )
     log.debug("Explored %s boards, %s moves deep", len(boards), steps)
     best.board.debug("New board")
     return best.board.moves or deep_blue(board)
