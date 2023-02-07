@@ -41,7 +41,8 @@ def bot() -> None:
         if c.args.path:
             break
         window.send_moves(moves)
-        u.Timer(0.1).wait()  # also arbitrary
+        # Laelath: SOLVE_WAIT_TIME = 4 * KEY_DELAY + 12ms = 80ms. Arbitrary?
+        u.Timer(4 * gui.KEY_DELAY + 0.012).wait()
 
 
 def get_game_window(launch: bool = True, activate: bool = True) -> t.Optional[gui.GameWindow]:
@@ -68,4 +69,4 @@ def get_game_window(launch: bool = True, activate: bool = True) -> t.Optional[gu
             raise u.HMError(
                 "Game did not start after %s seconds", c.config["game_launch_timeout"]
             )
-        u.Timer(1).wait()
+        u.Timer(1).wait()  # Also arbitrary

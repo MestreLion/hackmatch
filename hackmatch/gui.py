@@ -36,7 +36,9 @@ BPP: int = 3  # Bits per pixel in Image data (bit depth)
 MATCH_PIXELS = 8  # Pixels in a row to consider a block match
 
 # Delay after each key event (Down and Up), in seconds. Full key press = 2 * PAUSE
-pyautogui.PAUSE = 0.017  # 17ms = 60 FPS. Default = 0.1 = 100ms = 10 FPS
+# Laelath: KEY_DELAY=17ms; PyAutoGUI default = 0.1 = 100ms = 10 FPS
+KEY_DELAY = 0.017  # 17ms ~= 60 FPS
+pyautogui.PAUSE = KEY_DELAY
 
 
 class BaseBlock(bytes, enum.Enum):
@@ -234,7 +236,8 @@ class GameWindow:
         self.window.close()
 
     def new_board(self) -> ai.Board:
-        fps = 20  # c.config["bot_fps"]
+        # Screenshot takes ~10ms. Laelath: RECHECK_WAIT_TIME = KEY_DELAY + 3 = 20ms
+        fps = 40  # 25ms
         clock = u.FrameRateLimiter(fps)
         error_count = 0
         while True:

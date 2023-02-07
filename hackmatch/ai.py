@@ -17,6 +17,7 @@ import typing as t
 from . import config as c
 from . import util as u
 
+# Laelath: MAX_SEARCH_TIME = 110ms
 MAX_SOLVE_TIME = 0.340  # ~20 frames @ 60 FPS
 
 Coord: u.TypeAlias = t.Tuple[int, int]
