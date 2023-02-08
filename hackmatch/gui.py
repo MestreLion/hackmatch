@@ -34,6 +34,7 @@ ParamCls: u.TypeAlias = t.Type["Parameters"]
 
 BPP: int = 3  # Bits per pixel in Image data (bit depth)
 MATCH_PIXELS = 8  # Pixels in a row to consider a block match
+PHAGE_CROUCH = (-3, 3)  # Phage extra offset when crouching. X for silver, Y for held
 
 # Delay after each key event (Down and Up), in seconds. Full key press = 2 * PAUSE
 # Laelath: KEY_DELAY=17ms; PyAutoGUI default = 0.1 = 100ms = 10 FPS
@@ -67,11 +68,11 @@ class Parameters:
     OFFSET: Offset = (0, 0)  # Leftmost block start, Top "shadow" ends + 1
     HEIGHT: int = 0  # Board height, including Phage. OFFSET[1] + HEIGHT = Ground
     MATCH_Y_OFFSET: int = 0  # Offset from block top to match marker. Cosmetic, for debug
+    HELD_Y_OFFSET: int = 0  # Y offset from board top to phage held block marker
     PHAGE_SILVER_OFFSET: Offset = (0, 0)  # From (column left, board top) to phage marker
     PHAGE_SILVER_DATA: bytes = b""
     PHAGE_PINK_OFFSET: Offset = (0, 0)  # From (column left, board top) to phage marker
     PHAGE_PINK_DATA: bytes = b""
-    HELD_Y_OFFSET: int = 0  # Y offset from window top to phage held block marker
     # Derived
     WIDTH: int = 0  # Board width, BLOCK_SIZE[0] * BOARD_COLS
     MATCH_X_OFFSET: int = 0  # Offset from block left using BLOCK_SIZE and MATCH_PIXELS
@@ -115,12 +116,13 @@ class Parameters:
 
 
 class Parameters1920x1080(Parameters):
+    # Same positions as Laelath
     BLOCK_SIZE = (72, 72)
     OFFSET = (440, 151)
     HEIGHT = 770  # Laelath: 810
     MATCH_Y_OFFSET = 56
-    HELD_Y_OFFSET = 908
-    PHAGE_SILVER_OFFSET = (22, 682)
+    HELD_Y_OFFSET = 757  # 908 - OFFSET[1]
+    PHAGE_SILVER_OFFSET = (22, 682)  # (22, 833 - OFFSET[1])
     PHAGE_SILVER_DATA = 2 * b"\xe4\xff\xff" + 4 * b"\xe5\xff\xff" + 2 * b"\xe4\xff\xff"
     PHAGE_PINK_OFFSET = (0, 0)
     PHAGE_PINK_DATA = b""
@@ -151,7 +153,7 @@ class Parameters1600x900(Parameters):
     HEIGHT = 643
     MATCH_Y_OFFSET = 46
     HELD_Y_OFFSET = 630
-    PHAGE_SILVER_OFFSET = (19, 568)  # fidel-solver: (18, ...)
+    PHAGE_SILVER_OFFSET = (19, 568)  # fidel-solver: (18, 694 - OFFSET[1])
     PHAGE_SILVER_DATA = 1 * b"\xe4\xff\xff" + 3 * b"\xe5\xff\xff" + b"\xe4\xff\xff"
 
     class Block(BaseBlock):
@@ -344,18 +346,24 @@ def find_phage_column(data: bytes, p: ParamCls) -> t.Optional[int]:
     w = len(p.PHAGE_SILVER_DATA) // BPP
     for col in range(c.BOARD_COLS):
         x = p.x_offset(col, p.PHAGE_SILVER_OFFSET[0])
-        for off in (0, -3):  # normal / crouch
+        for off in (0, PHAGE_CROUCH[0]):  # normal / crouch
             if w and get_segment(data, p, x + off, y, w) == p.PHAGE_SILVER_DATA:
                 return col
     else:
         return None
 
 
-def find_held_block(data: bytes, p: ParamCls, phage: t.Optional[int]) -> Parameters.Block:
-    # TODO: It's not that simple either...
-    if phage is None:
+def find_held_block(data: bytes, p: ParamCls, col: t.Optional[int]) -> Parameters.Block:
+    # TODO: It's not that simple...
+    if col is None:
         return p.Block.EMPTY
-    return get_block_at(data, p, col=phage, y=p.HELD_Y_OFFSET)
+    x = p.x(col)
+    for off in (0, PHAGE_CROUCH[1]):
+        block = get_block_at(data, p, x=x, y=p.OFFSET[1] + p.HELD_Y_OFFSET + off)
+        if block != p.Block.EMPTY:
+            return block
+    else:
+        return p.Block.EMPTY
 
 
 # fmt: off
@@ -390,8 +398,30 @@ def draw_debug(board_data: BoardData) -> Image:
     img = original.copy()
     draw = PIL.ImageDraw.Draw(img)
 
-    def draw_board_rect(ya: int, yb: int) -> None:
-        draw.rectangle((p.OFFSET[0], ya, p.OFFSET[0] + p.WIDTH, yb))
+    def draw_board_rect(y1: int, y2: int) -> None:
+        draw.rectangle((p.OFFSET[0], y1, p.OFFSET[0] + p.WIDTH, y2))
+
+    def draw_block(x0: int, y0: int):
+        # Block match segment
+        draw.rectangle((x0 - 1, y0 - 1, x0 + MATCH_PIXELS, y0 + 1))
+        block = get_block_at(data, p, x=x0, y=y0)
+        if block == p.Block.EMPTY:
+            return
+        # Block outline and center full square
+        color = t.cast(t.Tuple[int, int, int], tuple(block.value[:3]))
+        width, height = p.BLOCK_SIZE
+        x1, y1 = x0 - p.MATCH_X_OFFSET, y0 - p.MATCH_Y_OFFSET
+        x2, y2 = x1 + width - 1, y1 + height - 1
+        dx, dy = width // 4, height // 4
+        ds = 2
+        draw.rectangle((x1, y1, x2, y2), outline=color)
+        draw.rectangle((x1 + dx + ds, y1 + dy - ds, x2 - dx - ds, y2 - dy - ds), fill=color)
+
+    def draw_phage_column(phage_column: int, y0: int, width: int, black: bool = False):
+        x0 = p.x_offset(phage_column, p.PHAGE_SILVER_OFFSET[0])
+        x1 = x0 + min(0, PHAGE_CROUCH[0]) - 1
+        x2 = x0 + max(0, PHAGE_CROUCH[0]) + width
+        draw.rectangle((x1, y0 - 1, x2, y0 + 1), outline=(0, 0, 0) if black else None)
 
     # Blocks area
     draw_board_rect(p.BLOCKS_Y_RANGE[1], p.BLOCKS_Y_RANGE[0])
@@ -405,38 +435,29 @@ def draw_debug(board_data: BoardData) -> Image:
         draw_board_rect(y - 1, y + 1)
         for col in range(c.BOARD_COLS):
             x = p.x(col)
-            # Block match segment
-            draw.rectangle((x - 1, y - 1, x + MATCH_PIXELS, y + 1))
-            block = get_block_at(data, p, x=x, y=y)
-            if block == p.Block.EMPTY:
-                continue
-            # Block outline and center full square
-            color = t.cast(t.Tuple[int, int, int], tuple(block.value[:3]))
-            w, h = p.BLOCK_SIZE
-            x1, y1 = x - p.MATCH_X_OFFSET, y - p.MATCH_Y_OFFSET
-            x2, y2 = x1 + w - 1, y1 + h - 1
-            dx, dy = w // 4, h // 4
-            ds = 2
-            draw.rectangle((x1, y1, x2, y2), outline=color)
-            draw.rectangle(
-                (x1 + dx + ds, y1 + dy - ds, x2 - dx - ds, y2 - dy - ds), fill=color
-            )
+            draw_block(x, y)
+
     # Phage column
     w = len(p.PHAGE_SILVER_DATA) // BPP
     y = p.OFFSET[1] + p.PHAGE_SILVER_OFFSET[1]
     # All columns, in white
     draw_board_rect(y - 1, y + 1)
     for col in range(c.BOARD_COLS):
-        x = p.x_offset(col, p.PHAGE_SILVER_OFFSET[0])
-        draw.rectangle((x - 1 - 3, y - 1, x + w, y + 1))
+        draw_phage_column(col, y, w)
     # Matched column, if found, in black
     col = find_phage_column(data, p)
     if col is not None:
-        x = p.x_offset(col, p.PHAGE_SILVER_OFFSET[0])
-        draw.rectangle((x - 1 - 3, y - 1, x + w, y + 1), outline=(0, 0, 0))
+        draw_phage_column(col, y, w, black=True)
 
     # Phage held
-    # draw_board_rect(p.HELD_Y_OFFSET - 1, p.HELD_Y_OFFSET + 1)
+    y = p.OFFSET[1] + p.HELD_Y_OFFSET
+    ya = y + min(0, PHAGE_CROUCH[1]) - 1
+    yb = y + max(0, PHAGE_CROUCH[1]) + 1
+    draw_board_rect(ya, yb)
+    if col is not None:
+        x = p.x(col)
+        for off in (0, PHAGE_CROUCH[1]):
+            draw_block(x, y + off)
 
     return img
 
