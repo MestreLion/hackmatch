@@ -9,7 +9,6 @@ High-level bot logic
 import logging
 import typing as t
 
-from . import ai
 from . import config as c
 from . import game
 from . import util as u
@@ -19,28 +18,40 @@ log = logging.getLogger(__name__)
 
 
 def bot() -> None:
-    window: t.Optional[gui.GameWindow]
-    settings: c.GameSettings = game.read_settings()
-    if not game.check_settings(settings):
-        window = get_game_window(launch=False, activate=False)
-        if window is not None:
-            window.close()
-            u.Timer(1).wait()  # so arbitrary!
-        game.change_settings()
-
-    window = get_game_window(activate=(c.args.path is None))
-    assert window is not None
-    log.info("Game window: %s", window)
-
-    while True:
-        board: ai.Board = window.new_board()
+    if c.args.path:
+        board = gui.get_board_from_path(c.args.path, c.args.debug)
+        if board is None:
+            return
         log.info("Board:\n%s", board)
         moves = board.solve()
         if moves:
             log.info("Moves: %s", moves)
-        if c.args.path:
-            break
-        window.send_moves(moves)
+        return
+
+    validate_game_settings()
+    window = get_game_window(activate=(c.args.path is None))
+    assert window is not None
+    log.info("Game window: %s", window)
+
+    if c.args.benchmark:
+
+        def keep_running() -> bool:
+            return not timer.expired
+
+        timer = u.Timer(60)
+    else:
+
+        def keep_running() -> bool:
+            return True
+
+    while keep_running():
+        board = window.new_board()
+        log.info("Board:\n%s", board)
+        moves = board.solve()
+        if moves:
+            log.info("Moves: %s", moves)
+        if not c.args.watch:
+            window.send_moves(moves)
         # Laelath: SOLVE_WAIT_TIME = 4 * KEY_DELAY + 12ms = 80ms. Arbitrary?
         u.Timer(4 * gui.KEY_DELAY + 0.012).wait()
 
@@ -70,3 +81,13 @@ def get_game_window(launch: bool = True, activate: bool = True) -> t.Optional[gu
                 "Game did not start after %s seconds", c.config["game_launch_timeout"]
             )
         u.Timer(1).wait()  # Also arbitrary
+
+
+def validate_game_settings() -> None:
+    settings: c.GameSettings = game.read_settings()
+    if not game.check_settings(settings):
+        window = get_game_window(launch=False, activate=False)
+        if window is not None:
+            window.close()
+            u.Timer(1).wait()  # so arbitrary!
+        game.change_settings()

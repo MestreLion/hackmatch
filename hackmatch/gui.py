@@ -235,14 +235,19 @@ class GameWindow:
         log.info("Closing game")
         self.window.close()
 
-    def new_board(self) -> ai.Board:
+    def new_board(self, debug: bool = False) -> ai.Board:
         # Screenshot takes ~10ms. Laelath: RECHECK_WAIT_TIME = KEY_DELAY + 3 = 20ms
         fps = 40  # 25ms
         clock = u.FrameRateLimiter(fps)
         error_count = 0
         while True:
+            image: Image = self.take_screenshot()
+            size = image.size
+            if size != self.prev_size:
+                log.info("Game window resized: %s", size)
+                self.prev_size = size
             try:
-                *_, board = board_data = self.to_board()
+                *_, board = board_data = parse_image(image)
             except UnsupportedWindowSizeError as e:
                 # warn every 2 seconds, raise after 10
                 if error_count >= 10 * fps:
@@ -253,27 +258,23 @@ class GameWindow:
                 clock.wait()
                 continue
             if board is not None and board != self.prev_board:
-                if c.args.debug:
+                if debug:
                     save_debug(board_data)
                 self.prev_board = board
                 return board
             clock.wait()
 
-    def to_board(self) -> BoardData:
-        if not c.args.path:
-            image: Image = self.take_screenshot()
-        else:
-            image = PIL.Image.open(c.args.path).convert(mode="RGB")
-        size = image.size
-        if size != self.prev_size:
-            log.info("Game window resized: %s", size)
-            self.prev_size = size
-        # TODO: catch HMError and warn the first time, start timer to re-raise
-        return parse_image(image)
-
     def send_moves(self, moves: t.List[ai.Move]) -> None:
         for move in moves:
             press_key(self.keymap[move])
+
+
+def get_board_from_path(path: str, debug: bool = False) -> t.Optional[ai.Board]:
+    image: Image = PIL.Image.open(path).convert(mode="RGB")
+    board_data = parse_image(image)
+    if debug:
+        save_debug(board_data, save_original=False)
+    return board_data.board
 
 
 def parse_image(image: Image) -> BoardData:
@@ -352,37 +353,45 @@ def get_segment(data: bytes, p: ParamCls, x: int, y: int, pixels: int = 1) -> by
     return data[d : d + BPP * pixels]
 
 
-def save_debug(board_data: BoardData) -> None:
-    img, _, p, y, b = board_data
-    serial = "" if b is None else f"_{b.serialize()}"
-    img.save(f"board_{p.GAME_SIZE[1]}_{y}{serial}.png")
-    draw_debug(board_data).save(f"debug_{p.GAME_SIZE[1]}_{y}{serial}.png")
+def save_debug(board_data: BoardData, save_original: bool = True) -> None:
+    image, _, p, y_offset, board = board_data
+    y = "" if y_offset is None else f"_{y_offset}"
+    serial = "" if board is None else f"_{board.serialize()}"
+    if save_original:
+        image.save(f"board_{p.GAME_SIZE[1]}{y}{serial}.png")
+    draw_debug(board_data).save(f"debug_{p.GAME_SIZE[1]}{y}{serial}.png")
 
 
 def draw_debug(board_data: BoardData) -> Image:
     original, data, p, y_offset, _ = board_data
     img = original.copy()
     draw = PIL.ImageDraw.Draw(img)
-    draw.rectangle(
-        (p.OFFSET[0], p.BLOCKS_Y_RANGE[1], p.OFFSET[0] + p.WIDTH, p.BLOCKS_Y_RANGE[0])
-    )
+
+    def draw_board_rect(ya: int, yb: int) -> None:
+        draw.rectangle((p.OFFSET[0], ya, p.OFFSET[0] + p.WIDTH, yb))
+
+    # Blocks area
+    draw_board_rect(p.BLOCKS_Y_RANGE[1], p.BLOCKS_Y_RANGE[0])
+
+    # Blocks
     for row in range(c.BOARD_ROWS):
         if y_offset is None:
             break
         y = p.y(row, y_offset)
-        draw.rectangle((p.OFFSET[0], y - 1, p.OFFSET[0] + p.WIDTH, y + 1))
+        # y_offset
+        draw_board_rect(y - 1, y + 1)
         for col in range(c.BOARD_COLS):
             x = p.x(col)
+            # Block match segment
             draw.rectangle((x - 1, y - 1, x + MATCH_PIXELS + 1, y + 1))
             block = get_block_at(data, p, x=x, y=y)
             if block == p.Block.EMPTY:
                 continue
+            # Block outline and center full square
             color = t.cast(t.Tuple[int, int, int], tuple(block.value[:3]))
             w, h = p.BLOCK_SIZE
-            x1 = x - p.MATCH_X_OFFSET
-            y1 = y - p.MATCH_Y_OFFSET
-            x2 = x1 + w - 1
-            y2 = y1 + h - 1
+            x1, y1 = x - p.MATCH_X_OFFSET, y - p.MATCH_Y_OFFSET
+            x2, y2 = x1 + w - 1, y1 + h - 1
             dx, dy = w // 4, h // 4
             ds = 2
             draw.rectangle((x1, y1, x2, y2), outline=color)

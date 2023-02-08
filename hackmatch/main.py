@@ -35,7 +35,6 @@ def parse_args(argv: t.Optional[t.List[str]] = None) -> argparse.Namespace:
         action="store_const",
         help="Suppress informative messages.",
     )
-
     group.add_argument(
         "-v",
         "--verbose",
@@ -45,7 +44,25 @@ def parse_args(argv: t.Optional[t.List[str]] = None) -> argparse.Namespace:
         help="Verbose mode, output extra info.",
     )
 
-    parser.add_argument("path", nargs="?")
+    parser.add_argument(
+        "--benchmark",
+        action="store_true",
+        help="Benchmark mode, run for 30 seconds."
+        " Best used with --quiet and game already launched.",
+    )
+    parser.add_argument(
+        "--watch",
+        action="store_true",
+        help="Watch mode, read and solve board but do not play.",
+    )
+
+    parser.add_argument(
+        "path",
+        nargs="?",
+        metavar="IMAGE",
+        help="Ignore game window and solve %(metavar)s instead."
+        " Useful when debugging with --verbose.",
+    )
 
     args = parser.parse_args(argv)
     args.debug = args.loglevel == logging.DEBUG
