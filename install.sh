@@ -65,3 +65,13 @@ source "$vdir"/bin/activate
 # pip-install packages inside the venv. Do NOT use --user!
 pip install --disable-pip-version-check --upgrade -- "${pip_deps[@]}"
 pip install --disable-pip-version-check --upgrade -r "$here"/requirements.txt
+
+# Profiling:
+exit
+mkdir -p "$here"/profile
+echo '*' > "$here"/profile/.gitignore
+cat <<-EOF >/dev/null
+python -m cProfile -o ./profile/hackmatch.pstats -m hackmatch -q &&
+gprof2dot -f pstats -o ./profile/hackmatch.dot ./profile/hackmatch.pstats &&
+xdg-open ./profile/hackmatch.dot
+EOF
