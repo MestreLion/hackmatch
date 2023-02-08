@@ -81,7 +81,7 @@ def main(argv: t.Optional[t.List[str]] = None) -> None:
     c.init(args)
 
     if c.args.path:
-        board = gui.get_board_from_path(c.args.path, c.args.debug)
+        board = gui.get_board_from_path(path=c.args.path, debug=c.args.debug)
         if board is None:
             return
         log.info("Board:\n%s", board)
@@ -104,7 +104,7 @@ def main(argv: t.Optional[t.List[str]] = None) -> None:
 
     timer = u.Timer(60) if c.args.benchmark else u.FakeTimer(0)
     while not timer.expired:
-        board = window.new_board()
+        board = window.new_board(debug=c.args.debug)
         log.info("Board:\n%s", board)
         moves = board.solve()
         if moves:
