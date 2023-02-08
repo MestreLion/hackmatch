@@ -124,6 +124,12 @@ class Timer:
         return remaining
 
 
+class FakeTimer(Timer):
+    @property
+    def expired(self) -> bool:
+        return False
+
+
 def benchmark(
     func: t.Callable, *args: object, count: int = 100, **kwargs: object  # type: ignore
 ) -> None:

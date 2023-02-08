@@ -8,4 +8,4 @@ Convenience launcher. Allow running as `python3 -m hackmatch`
 
 from . import main
 
-main.main()
+main.run()

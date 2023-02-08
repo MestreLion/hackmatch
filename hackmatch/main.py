@@ -13,7 +13,8 @@ import sys
 import typing as t
 
 from . import config as c
-from . import logic
+from . import game
+from . import gui
 from . import util as u
 
 log = logging.getLogger(__name__)
@@ -70,17 +71,81 @@ def parse_args(argv: t.Optional[t.List[str]] = None) -> argparse.Namespace:
 
 
 def main(argv: t.Optional[t.List[str]] = None) -> None:
+    args = parse_args(argv)
+    logging.basicConfig(
+        level=args.loglevel,
+        datefmt="%Y-%m-%d %H:%M:%S",
+        format="[%(asctime)s %(levelname)-6.6s] %(message)s",
+    )
+    log.debug(args)
+    c.init(args)
+
+    if c.args.path:
+        board = gui.get_board_from_path(c.args.path, c.args.debug)
+        if board is None:
+            return
+        log.info("Board:\n%s", board)
+        moves = board.solve()
+        if moves:
+            log.info("Moves: %s", moves)
+        return
+
+    settings: c.GameSettings = game.read_settings()
+    if not game.check_settings(settings):
+        window = get_game_window(launch=False, activate=False)
+        if window is not None:
+            window.close()
+            u.Timer(1).wait()  # so arbitrary!
+        game.change_settings()
+
+    window = get_game_window(activate=(c.args.path is None))
+    assert window is not None
+    log.info("Game window: %s", window)
+
+    timer = u.Timer(60) if c.args.benchmark else u.FakeTimer(0)
+    while not timer.expired:
+        board = window.new_board()
+        log.info("Board:\n%s", board)
+        moves = board.solve()
+        if moves:
+            log.info("Moves: %s", moves)
+        if not c.args.watch:
+            window.send_moves(moves)
+        # Laelath: SOLVE_WAIT_TIME = 4 * KEY_DELAY + 12ms = 80ms. Arbitrary?
+        u.Timer(4 * gui.KEY_DELAY + 0.012).wait()
+
+
+def get_game_window(launch: bool = True, activate: bool = True) -> t.Optional[gui.GameWindow]:
+    """Get the game window, launching it if needed"""
+    launched: t.Optional[u.Timer] = None
+    while True:
+        try:
+            window = gui.GameWindow.find_by_title(c.WINDOW_TITLE)
+        except gui.WindowNotFoundError:
+            if not launch:
+                return None
+        else:
+            if activate:
+                window.activate(reposition=bool(launched))
+            return window
+        if not launched:
+            launched = u.Timer(c.config["game_launch_timeout"])
+            log.info(
+                "Launching game and waiting %s seconds for game window",
+                c.config["game_launch_timeout"],
+            )
+            game.launch()
+        elif launched.expired:
+            raise u.HMError(
+                "Game did not start after %s seconds", c.config["game_launch_timeout"]
+            )
+        u.Timer(1).wait()  # Also arbitrary
+
+
+def run(argv: t.Optional[t.List[str]] = None) -> None:
     """Main CLI entry point"""
     try:
-        args = parse_args(argv)
-        logging.basicConfig(
-            level=args.loglevel,
-            datefmt="%Y-%m-%d %H:%M:%S",
-            format="[%(asctime)s %(levelname)-6.6s] %(message)s",
-        )
-        log.debug(args)
-        c.init(args)
-        logic.bot()
+        main(argv)
     except u.HMError as err:
         log.critical(err)
         sys.exit(1)
@@ -88,8 +153,5 @@ def main(argv: t.Optional[t.List[str]] = None) -> None:
         log.exception(err)
         sys.exit(1)
     except KeyboardInterrupt:
-        import signal, os
-
-        log.info("Stopping...")
-        signal.signal(signal.SIGINT, signal.SIG_DFL)
-        os.kill(os.getpid(), signal.SIGINT)
+        log.info("Stopped")
+        sys.exit(2)

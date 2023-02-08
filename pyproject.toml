@@ -56,7 +56,7 @@ extra = [
 # -----------------------------------------------------------------------------
 # Entry points
 [project.scripts]
-hackmatch-bot = "hackmatch.main:main"
+hackmatch-bot = "hackmatch.main:run"
 
 # -----------------------------------------------------------------------------
 # Building
