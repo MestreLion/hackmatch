@@ -311,6 +311,7 @@ def parse_image(image: Image) -> BoardData:
     col = find_phage_column(data, params)
     block = find_held_block(data, params, col)
 
+    # TODO: Optimization: loop col->row, top to phage, break col when EMPTY
     board = ai.Board(phage_col=col, held_block=block.to_ai())
     for row in range(c.BOARD_ROWS):
         for col in range(c.BOARD_COLS):
@@ -421,12 +422,14 @@ def draw_debug(board_data: BoardData) -> Image:
                 (x1 + dx + ds, y1 + dy - ds, x2 - dx - ds, y2 - dy - ds), fill=color
             )
     # Phage column
-    w = len(p.PHAGE_SILVER_DATA) / BPP
+    w = len(p.PHAGE_SILVER_DATA) // BPP
     y = p.OFFSET[1] + p.PHAGE_SILVER_OFFSET[1]
+    # All columns, in white
     draw_board_rect(y - 1, y + 1)
     for col in range(c.BOARD_COLS):
         x = p.x_offset(col, p.PHAGE_SILVER_OFFSET[0])
         draw.rectangle((x - 1 - 3, y - 1, x + w, y + 1))
+    # Matched column, if found, in black
     col = find_phage_column(data, p)
     if col is not None:
         x = p.x_offset(col, p.PHAGE_SILVER_OFFSET[0])
@@ -485,7 +488,7 @@ def get_parameters(size: Size) -> ParamCls:
             size,
             tuple(PARAMETERS.keys()),
         )
-    if cls.GAME_SIZE != (0, 0):
+    if cls.GAME_SIZE == size:
         return cls  # class already updated
 
     # Derived constants
@@ -497,7 +500,9 @@ def get_parameters(size: Size) -> ParamCls:
         cls.OFFSET[1],
         -1,
     )
-    # Wizardry to add default members from the base class in Block enum
+    # Wizardry to merge Block enum members with default ones from Parameters.BLock
+    # Note: this merges with "root" class Parameters.BLock *only*, not with other
+    # (intermediary) parent bases, if any.
     if cls.Block.__members__.keys() != Parameters.Block.__members__.keys():
         members = Parameters.Block.__members__.copy()
         members.update(cls.Block.__members__)

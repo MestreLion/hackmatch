@@ -8,6 +8,13 @@ Game solver
 Solving algorithm taken from Justin Frank
 https://github.com/laelath/hack-match-bot
 """
+# TODO: Optimizations:
+# - Board._column_heights cache, cloned, updated on Board.move() only when SWAP, GRAB
+# - Board._score cache, cloned, reset on Board.move() only when SWAP, GRAB
+# - multiprocessing.Pool() or concurrent.futures.ProcessPoolExecutor() in solve()
+#   4 workers to parallelize only the Move loop, returning board/None and best/None
+#   so the main process adds to queue and update boards list and best.
+
 import collections
 import enum
 import logging
