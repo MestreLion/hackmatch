@@ -64,6 +64,9 @@ hackmatch-bot = "hackmatch.main:run"
 requires = ["setuptools >= 61.0.0"]  # Supports pyproject.toml configuration
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+packages = ["hackmatch"]
+
 [tool.setuptools.dynamic]
 version = {attr = "hackmatch.main.__version__"}
 
