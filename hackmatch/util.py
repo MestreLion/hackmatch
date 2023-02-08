@@ -110,7 +110,11 @@ class Timer:
 
     @property
     def remaining(self) -> float:
-        return self.secs - (time.perf_counter() - self.start)
+        return self.secs - (time.perf_counter() - self.start)  # or secs - elapsed
+
+    @property
+    def elapsed(self) -> float:
+        return time.perf_counter() - self.start  # or secs - remaining
 
     @property
     def expired(self) -> bool:

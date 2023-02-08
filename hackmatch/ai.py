@@ -243,7 +243,7 @@ class Board:
         """Sum of squared block group sizes, minus imbalance squared, +1 if holding"""
         groups = self.groups()
         return (
-            sum(len(group.coords) ** 2 for group in groups)  # / len(groups)
+            sum(len(group.coords) ** 2 for group in groups) / (len(groups) if groups else 1)
             - self.imbalance() ** 2
             + (1 if self.held_block else 0)
         )
@@ -252,12 +252,13 @@ class Board:
         """Sum of squared differences from each column height to the mean height"""
         heights = self.heights()
         mean = sum(heights) / len(heights)
-        return sum((height - mean) ** 2 for height in heights) + max(heights) ** 2
+        return sum((height - mean) ** 2 for height in heights)  # + max(heights)
 
-    def debug(self, caption: str = "Board") -> None:
+    def debug(self, caption: str = "Board", show_self: bool = True) -> None:
         if not log.level <= logging.DEBUG:
             return
-        log.debug("%s:\n%s", caption, self)
+        if show_self:
+            log.debug("%s:\n%s", caption, self)
         log.debug("Groups: %s", self.groups())
         log.debug("Heights: %s", self.heights())
         log.debug("Imbalance: %s", self.imbalance())
@@ -267,6 +268,7 @@ class Board:
 
 
 def solve(board: Board) -> t.List[Move]:
+    board.debug(show_self=False)
     boards: t.Set[Board] = {board}
     best = Candidate(board=board, score=board.score(), has_match=board.has_match())
     queue: t.Deque[Board] = collections.deque([board])  # First in, first out
@@ -292,14 +294,19 @@ def solve(board: Board) -> t.List[Move]:
             if score > best.score:
                 best = Candidate(board=board, score=score)
             queue.append(board)
-    remaining = 0 if timer.expired else timer.remaining
+    elapsed = timer.elapsed
+    if best.has_match:
+        reason = "MATCH FOUND!"
+    elif queue:
+        reason = "Timeout,"
+    else:
+        reason = "Completed,"
     log.info(
-        "%s%s boards in queue, %.0fms (%s) remaining, %s boards explored %s moves deep",
-        "MATCH FOUND! " if best.has_match else "",
-        len(queue),
-        1000 * remaining,
-        f"{remaining / MAX_SOLVE_TIME:.1%}",
+        "%s %s boards in %.0fms (%.0f boards/s), %s moves deep",
+        reason,
         len(boards),
+        elapsed * 1000,
+        len(boards) / elapsed,
         steps,
     )
     best.board.debug("New board")
@@ -313,6 +320,7 @@ def solve(board: Board) -> t.List[Move]:
     return best.board.moves  # or deep_blue(board)
 
 
+# noinspection PyUnusedLocal
 def deep_blue(board: Board) -> t.List[Move]:
     """An impressive, modern AI capable of scoring up to 10,000!"""
     moves: t.List[Move] = []
