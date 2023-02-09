@@ -291,7 +291,8 @@ class GameWindow:
 
     def send_moves(self, moves: t.List[ai.Move]) -> None:
         for move in moves:
-            press_key(self.keymap[move])
+            if self.window.isActive:
+                press_key(self.keymap[move])
 
 
 def get_board_from_path(path: str, debug: bool = False) -> t.Optional[ai.Board]:
