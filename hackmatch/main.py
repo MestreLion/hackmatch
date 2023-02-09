@@ -44,6 +44,7 @@ https://sunzenshen.github.io/presentations/2018/12/08/dissecting-hackmatch-solve
 # - Detect game's screens and use PyAutoGUI to go from title to start game
 # - Improve 1366x768 so it actually works
 # - Config file
+# - Investigate why solver is so reluctant to match bombs
 
 __version__ = "0.9"
 
@@ -140,9 +141,9 @@ def main(argv: t.Optional[t.List[str]] = None) -> None:
     timer = u.Timer(60) if c.args.benchmark else u.FakeTimer(0)
     while not timer.expired:
         board = window.new_board(debug=c.args.debug)
-        log.info(board)
+        log.info("%s\n%s", "" if c.args.debug else u.Terminal.CLEAR, board)
         moves = board.solve()
-        log.info(", ".join(f"{_}" for _ in moves))
+        log.info("\t" + ", ".join(f"{_}" for _ in moves))
         if not c.args.watch:
             window.send_moves(moves)
         # Laelath: SOLVE_WAIT_TIME = 4 * KEY_DELAY + 12ms = 80ms. Arbitrary?

@@ -65,6 +65,9 @@ else:
             pass
 
 
+_T = t.TypeVar("_T")  # general-use
+
+
 class HMError(Exception):
     """Base class for custom exceptions with a few extras on top of Exception.
 
@@ -86,6 +89,12 @@ class HMError(Exception):
 
 class RunFileError(HMError):
     """Exception for run_file() errors"""
+
+
+class Terminal:
+    # https://stackoverflow.com/a/50560686/624066
+    CLEAR: str = "\033[2J\033[H"
+    RESET: str = "\033c"  # or CLEAR + "\033[3J"
 
 
 class FrameRateLimiter:

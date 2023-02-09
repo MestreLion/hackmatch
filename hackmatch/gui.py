@@ -39,7 +39,6 @@ PHAGE_CROUCH = (-3, 3)  # Phage extra offset when crouching. X for silver, Y for
 # Delay after each key event (Down and Up), in seconds. Full key press = 2 * PAUSE
 # Laelath: KEY_DELAY=17ms; PyAutoGUI default = 0.1 = 100ms = 10 FPS
 KEY_DELAY = 0.017  # 17ms ~= 60 FPS
-pyautogui.PAUSE = KEY_DELAY
 
 
 class BaseBlock(bytes, enum.Enum):
@@ -212,6 +211,9 @@ class GameWindow:
             move: get_keyname(settings[move.value]) for move in ai.Move
         }
         log.debug("Keymap: %s", self.keymap)
+        # Configure PyAutoGUI
+        pyautogui.PAUSE = KEY_DELAY
+        pyautogui.FAILSAFE = False
 
     def __str__(self) -> str:
         return str(self.window)
