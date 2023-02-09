@@ -59,7 +59,7 @@ class Block(str, enum.Enum):
         return f"<{self.__class__.__name__}.{self.name}>"
 
     def match_size(self) -> int:
-        return 2 if self.name[:-5] == "_BOMB" else 4
+        return 2 if self.name[-5:] == "_BOMB" else 4
 
 
 class Move(enum.Enum):

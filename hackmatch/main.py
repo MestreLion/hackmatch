@@ -43,7 +43,6 @@ https://sunzenshen.github.io/presentations/2018/12/08/dissecting-hackmatch-solve
 # - Detect game's screens and use PyAutoGUI to go from title to start game
 # - Improve 1366x768 so it actually works
 # - Config file
-# - Investigate why solver is so reluctant to match bombs
 
 
 __version__ = "0.9"
