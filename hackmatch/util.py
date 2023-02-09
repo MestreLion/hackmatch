@@ -164,6 +164,7 @@ def setup_logging(
         logging.basicConfig(level=level, format=fmt, datefmt=datefmt, style=style)
         return
 
+    # Adapted from https://stackoverflow.com/a/25101727/624066
     class PlainInfo(logging.Formatter):
         info_formatter = logging.Formatter(style=style)
 
