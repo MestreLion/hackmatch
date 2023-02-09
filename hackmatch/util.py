@@ -144,6 +144,11 @@ class FakeTimer(Timer):
         return False
 
 
+def chunked(data: t.Sequence[_T], chunk_size: int) -> t.Iterator[t.Tuple[_T, ...]]:
+    # Adapted from https://stackoverflow.com/a/312464/624066
+    return (tuple(data[i : i + chunk_size]) for i in range(0, len(data), chunk_size))
+
+
 def benchmark(
     func: t.Callable, *args: object, count: int = 100, **kwargs: object  # type: ignore
 ) -> None:

@@ -112,6 +112,33 @@ class Board:
     def moves(self) -> t.List[Move]:
         return self._moves
 
+    @classmethod
+    def from_string(
+        cls, text: str, sep: str = "-", phage: str = "@", empty: str = ".", ground: str = "_"
+    ) -> "Board":
+        # TODO: perhaps use u.chunked() to simplify this
+        self = cls()
+        lines = text.replace(sep, "\n").splitlines()
+        if not lines:
+            return self
+
+        assert len(lines) <= c.BOARD_ROWS + 1
+        for row, line in enumerate(lines[:-1]):
+            assert not line or len(line) == c.BOARD_COLS
+            for col, char in enumerate(line):
+                if char != empty:
+                    self.set_block(col, row, Block(char))
+        line = lines[-1]
+        assert len(line) <= c.BOARD_COLS
+        for col, char in enumerate(lines[-1]):
+            if char == ground:
+                continue
+            if char != phage:
+                self.held_block = Block(char)
+            self.phage_col = col
+            break
+        return self
+
     def get_block(self, col: int, row: int) -> Block:
         return self.grid.get((col, row), Block.EMPTY)
 
@@ -187,19 +214,21 @@ class Board:
         )
 
     def __str__(self) -> str:
-        phage_row = ["_"] * c.BOARD_COLS
-        phage_row[self.phage_col] = str(self.held_block) if self.held_block else "@"
+        return self.serialize(sep="\n")
+
+    def serialize(
+        self, sep: str = "-", phage: str = "@", empty: str = ".", ground: str = "_"
+    ) -> str:
+        phage_row = [ground] * c.BOARD_COLS
+        phage_row[self.phage_col] = str(self.held_block) if self.held_block else phage
         return (
-            "\n".join(
-                "".join(str(self.get_block(col, row)) for col in range(c.BOARD_COLS))
+            sep.join(
+                "".join(str(self.get_block(col, row) or empty) for col in range(c.BOARD_COLS))
                 for row in range(c.BOARD_ROWS)
             )
-            + "\n"
+            + sep
             + "".join(phage_row)
         )
-
-    def serialize(self) -> str:
-        return str(self).replace("\n", "-")
 
     @staticmethod
     def adjacents(col: int, row: int) -> t.List[Coord]:

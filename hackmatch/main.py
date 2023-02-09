@@ -34,7 +34,6 @@ https://sunzenshen.github.io/presentations/2018/12/08/dissecting-hackmatch-solve
 """
 # TODO:
 # - Pygame logging: show ai.Board and solve() graphically!
-# - ai.Board.from_serial(): copy and paste ASCII boards
 # - Parallelize ai.solve() and optimize ai.Board
 # - Make sure Window is active before sending keys?
 # - Implement gui.find_phage_pink(), and/or detect throw
@@ -46,6 +45,7 @@ https://sunzenshen.github.io/presentations/2018/12/08/dissecting-hackmatch-solve
 # - Config file
 # - Investigate why solver is so reluctant to match bombs
 
+
 __version__ = "0.9"
 
 import argparse
@@ -53,6 +53,7 @@ import logging
 import sys
 import typing as t
 
+from . import ai
 from . import config as c
 from . import game
 from . import gui
@@ -98,7 +99,14 @@ def parse_args(argv: t.Optional[t.List[str]] = None) -> argparse.Namespace:
         help="Watch mode, read and solve board but do not play.",
     )
 
-    parser.add_argument(
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "--board",
+        dest="string",
+        metavar="TEXT",
+        help="Ignore game window and solve %(metavar)s instead.",
+    )
+    group.add_argument(
         "path",
         nargs="?",
         metavar="IMAGE",
@@ -117,11 +125,14 @@ def main(argv: t.Optional[t.List[str]] = None) -> None:
     log.debug(args)
     c.init(args)
 
-    if c.args.path:
-        board = gui.get_board_from_path(path=c.args.path, debug=c.args.debug)
+    if c.args.path or c.args.string:
+        if c.args.path:
+            board = gui.get_board_from_path(path=c.args.path, debug=c.args.debug)
+        else:
+            board = ai.Board.from_string(c.args.string)
         if board is None:
             return
-        log.info("\n%s", board)
+        log.info("%s%s", "\n" if c.args.debug else "", board)
         moves = board.solve()
         log.info("\t" + ", ".join(f"{_}" for _ in moves))
         return
@@ -141,7 +152,7 @@ def main(argv: t.Optional[t.List[str]] = None) -> None:
     timer = u.Timer(60) if c.args.benchmark else u.FakeTimer(0)
     while not timer.expired:
         board = window.new_board(debug=c.args.debug)
-        log.info("%s\n%s", "" if c.args.debug else u.Terminal.CLEAR, board)
+        log.info("%s%s", "\n" if c.args.debug else u.Terminal.CLEAR, board)
         moves = board.solve()
         log.info("\t" + ", ".join(f"{_}" for _ in moves))
         if not c.args.watch:
