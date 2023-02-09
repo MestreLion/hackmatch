@@ -56,7 +56,7 @@ Copyright (C) 2023 Rodrigo Silva (MestreLion) <linux@rodrigosilva.com>
 License: GPLv3 or later, at your choice. See <http://www.gnu.org/licenses/gpl>
 """
 
-log = logging.getLogger(__name__)
+INITIALIZED = False  # Indicates if init() has been called
 
 config: t.Dict[str, t.Any] = {
     "bot_fps": 20,
@@ -65,15 +65,39 @@ config: t.Dict[str, t.Any] = {
     "steam_user_id": 0,
 }
 
-args: argparse.Namespace = argparse.Namespace()
+args: argparse.Namespace = argparse.Namespace(
+    benchmark=False,
+    debug=False,
+    loglevel=logging.INFO,
+    path=None,
+    string=None,
+    timeout=850,
+    watch=False,
+)
+
+log = logging.getLogger(__name__)
 
 
-def init(parsed_args: argparse.Namespace) -> None:
-    global args, GAME_CONFIG_PATH
-    args = parsed_args
+def init(parsed_args: t.Optional[argparse.Namespace] = None) -> None:
+    global args, GAME_CONFIG_PATH, INITIALIZED
+    if parsed_args is not None:
+        args = parsed_args
     if not config["steam_user_id"]:
         config["steam_user_id"] = get_steam_user_id(config["steam_user_name"])
     GAME_CONFIG_PATH = get_game_config_path(config["steam_user_id"])
+    INITIALIZED = True
+
+
+def check_init() -> bool:
+    if INITIALIZED:
+        return True
+    log.warning(
+        "Application not initialized, using default settings."
+        " Run %s.init() to avoid this.",
+        __name__,
+    )
+    init()
+    return False
 
 
 def get_steam_user_id(steam_user_name: str) -> int:
@@ -94,4 +118,4 @@ def get_game_config_path(steam_user_id: int = 0) -> str:
     try:
         return str(next(pathlib.Path("/").glob(path[1:])))
     except StopIteration:
-        raise FileNotFoundError("Could not find the game config: %s", path)
+        raise u.FileOpenError("Could not find the game config folder: %s", path)

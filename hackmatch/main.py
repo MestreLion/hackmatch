@@ -46,7 +46,7 @@ https://sunzenshen.github.io/presentations/2018/12/08/dissecting-hackmatch-solve
 # - Detect game's screens and use PyAutoGUI to go from title to start game
 # - Improve 1366x768 so it actually works
 # - Config file
-
+# - Consider adding all exception classes to util (u.HMError.__subclasses__())
 
 __version__ = "0.9"
 
@@ -120,6 +120,7 @@ def parse_args(argv: t.Optional[t.List[str]] = None) -> argparse.Namespace:
     group.add_argument(
         "path",
         nargs="?",
+        type=argparse.FileType("rb"),
         metavar="IMAGE",
         help="Ignore game window and solve %(metavar)s instead."
         " Useful when debugging with --verbose.",
@@ -127,6 +128,9 @@ def parse_args(argv: t.Optional[t.List[str]] = None) -> argparse.Namespace:
 
     args = parser.parse_args(argv)
     args.debug = args.loglevel == logging.DEBUG
+    assert dir(args) == dir(c.args), "config.args is outdated: %s" % (
+        set(dir(args)) ^ set(dir(c.args))
+    )
     return args
 
 
@@ -136,8 +140,8 @@ def main(argv: t.Optional[t.List[str]] = None) -> None:
     log.debug(args)
     c.init(args)
 
-    if c.args.path or c.args.string:
-        if c.args.path:
+    if not (c.args.path is None and c.args.string is None):
+        if c.args.path is not None:
             board = gui.get_board_from_path(path=c.args.path, debug=c.args.debug)
         else:
             board = ai.Board.from_string(c.args.string)
@@ -203,7 +207,7 @@ def run(argv: t.Optional[t.List[str]] = None) -> None:
     """Main CLI entry point"""
     try:
         main(argv)
-    except u.HMError as err:
+    except (u.HMError, FileNotFoundError) as err:
         log.critical(err)
         sys.exit(1)
     except Exception as err:

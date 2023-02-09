@@ -295,6 +295,8 @@ class GameWindow:
 
 
 def get_board_from_path(path: str, debug: bool = False) -> t.Optional[ai.Board]:
+    if not path:
+        raise u.FileOpenError("Invalid empty image path")
     image: Image = PIL.Image.open(path).convert(mode="RGB")
     board_data = parse_image(image)
     if debug:

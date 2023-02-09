@@ -91,6 +91,10 @@ class RunFileError(HMError):
     """Exception for run_file() errors"""
 
 
+class FileOpenError(HMError, FileNotFoundError):
+    """File not found or otherwise unable to open"""
+
+
 class Terminal:
     # https://stackoverflow.com/a/50560686/624066
     CLEAR: str = "\033[2J\033[H"

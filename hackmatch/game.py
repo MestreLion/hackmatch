@@ -24,6 +24,7 @@ def launch() -> None:
 
 
 def read_settings() -> c.GameSettings:
+    c.check_init()
     log.info("Read game settings: %s", c.GAME_CONFIG_PATH)
     with open(c.GAME_CONFIG_PATH) as f:
         settings = f.readlines()
@@ -35,6 +36,7 @@ def read_settings() -> c.GameSettings:
 
 
 def write_settings(settings: c.GameSettings) -> None:
+    c.check_init()
     log.info("Write game settings: %s", c.GAME_CONFIG_PATH)
     text = "\n".join(f"{k} = {v}" for k, v in settings.items())
     with open(c.GAME_CONFIG_PATH, "w") as f:
