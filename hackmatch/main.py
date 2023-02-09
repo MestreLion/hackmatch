@@ -45,7 +45,7 @@ https://sunzenshen.github.io/presentations/2018/12/08/dissecting-hackmatch-solve
 # - Improve 1366x768 so it actually works
 # - Config file
 
-__version__ = "0.1"
+__version__ = "0.9"
 
 import argparse
 import logging
