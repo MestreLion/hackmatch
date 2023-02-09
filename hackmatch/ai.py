@@ -25,7 +25,7 @@ from . import config as c
 from . import util as u
 
 # Laelath: MAX_SEARCH_TIME = 110ms
-MAX_SOLVE_TIME = 0.680  # ~40 frames @ 60 FPS
+MAX_SOLVE_TIME = 0.850  # ~50 frames @ 60 FPS
 
 Coord: u.TypeAlias = t.Tuple[int, int]
 Grid: u.TypeAlias = t.Dict[Coord, "Block"]
@@ -76,6 +76,9 @@ class Move(enum.Enum):
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}.{self.name}>"
+
+    def __str__(self) -> str:
+        return self.name
 
 
 class Group(t.NamedTuple):
@@ -296,27 +299,24 @@ def solve(board: Board) -> t.List[Move]:
             queue.append(board)
     elapsed = timer.elapsed
     if best.has_match:
-        reason = "MATCH FOUND!"
+        reason = "MATCH FOUND! After"
     elif queue:
-        reason = "Timeout,"
+        reason = "TIMEOUT after"
     else:
-        reason = "Completed,"
+        reason = "Completed after"
     log.info(
-        "%s %s boards in %.0fms (%.0f boards/s), %s moves deep",
+        "%s %.0fms, %s boards (%.0f boards/s), %s moves deep",
         reason,
-        len(boards),
         elapsed * 1000,
+        len(boards),
         len(boards) / elapsed,
         steps,
     )
     best.board.debug("New board")
-    # FIXME: Temporary fix until we parse phage col and held block ############
-    best.board.moves.extend(
-        best.board.phage_col * [Move.LEFT] + (c.BOARD_COLS // 2) * [Move.RIGHT]
-    )
-    if best.board.held_block:
-        best.board.moves.append(Move.GRAB)
-    # #########################################################################
+    # Move to the middle column to help next solve() to see more boards
+    center = best.board.phage_col - (c.BOARD_COLS // 2)
+    if center:
+        best.board.moves.extend(abs(center) * ([Move.LEFT] if center > 0 else [Move.RIGHT]))
     return best.board.moves  # or deep_blue(board)
 
 

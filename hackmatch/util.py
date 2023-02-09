@@ -5,6 +5,7 @@
 """
 General utilities
 """
+import logging
 import os
 import subprocess
 import sys
@@ -151,3 +152,26 @@ def run_file(path: str) -> None:
         _run_file(path)
     except (NotImplementedError, subprocess.CalledProcessError) as e:
         raise RunFileError("%s: %s", e.__class__.__name__, e, e=e)
+
+
+def setup_logging(
+    level: int = logging.INFO,
+    fmt: str = "[%(asctime)s %(levelname)-6.6s] %(module)-4s: %(message)s",
+    datefmt: str = "%Y-%m-%d %H:%M:%S",
+    style: t.Literal["%", "{", "$"] = "%",
+) -> None:
+    if level < logging.INFO:
+        logging.basicConfig(level=level, format=fmt, datefmt=datefmt, style=style)
+        return
+
+    class PlainInfo(logging.Formatter):
+        info_formatter = logging.Formatter(style=style)
+
+        def format(self, record: logging.LogRecord) -> str:
+            if record.levelno == logging.INFO:
+                return self.info_formatter.format(record)
+            return super().format(record)
+
+    handler = logging.StreamHandler()
+    handler.setFormatter(PlainInfo(fmt=fmt, datefmt=datefmt, style=style))
+    logging.basicConfig(level=level, handlers=[handler])

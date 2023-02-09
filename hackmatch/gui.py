@@ -354,7 +354,7 @@ def find_phage_column(data: bytes, p: ParamCls) -> t.Optional[int]:
 
 
 def find_held_block(data: bytes, p: ParamCls, col: t.Optional[int]) -> Parameters.Block:
-    # TODO: It's not that simple...
+    # TODO: It's not that simple... but who needs find_pink()?
     if col is None:
         return p.Block.EMPTY
     x = p.x(col)
@@ -401,7 +401,7 @@ def draw_debug(board_data: BoardData) -> Image:
     def draw_board_rect(y1: int, y2: int) -> None:
         draw.rectangle((p.OFFSET[0], y1, p.OFFSET[0] + p.WIDTH, y2))
 
-    def draw_block(x0: int, y0: int):
+    def draw_block(x0: int, y0: int) -> None:
         # Block match segment
         draw.rectangle((x0 - 1, y0 - 1, x0 + MATCH_PIXELS, y0 + 1))
         block = get_block_at(data, p, x=x0, y=y0)
@@ -417,8 +417,8 @@ def draw_debug(board_data: BoardData) -> Image:
         draw.rectangle((x1, y1, x2, y2), outline=color)
         draw.rectangle((x1 + dx + ds, y1 + dy - ds, x2 - dx - ds, y2 - dy - ds), fill=color)
 
-    def draw_phage_column(phage_column: int, y0: int, width: int, black: bool = False):
-        x0 = p.x_offset(phage_column, p.PHAGE_SILVER_OFFSET[0])
+    def draw_phage_column(phage: int, y0: int, width: int, black: bool = False) -> None:
+        x0 = p.x_offset(phage, p.PHAGE_SILVER_OFFSET[0])
         x1 = x0 + min(0, PHAGE_CROUCH[0]) - 1
         x2 = x0 + max(0, PHAGE_CROUCH[0]) + width
         draw.rectangle((x1, y0 - 1, x2, y0 + 1), outline=(0, 0, 0) if black else None)
@@ -445,17 +445,17 @@ def draw_debug(board_data: BoardData) -> Image:
     for col in range(c.BOARD_COLS):
         draw_phage_column(col, y, w)
     # Matched column, if found, in black
-    col = find_phage_column(data, p)
-    if col is not None:
-        draw_phage_column(col, y, w, black=True)
+    phage_col = find_phage_column(data, p)
+    if phage_col is not None:
+        draw_phage_column(phage_col, y, w, black=True)
 
     # Phage held
     y = p.OFFSET[1] + p.HELD_Y_OFFSET
     ya = y + min(0, PHAGE_CROUCH[1]) - 1
     yb = y + max(0, PHAGE_CROUCH[1]) + 1
     draw_board_rect(ya, yb)
-    if col is not None:
-        x = p.x(col)
+    if phage_col is not None:
+        x = p.x(phage_col)
         for off in (0, PHAGE_CROUCH[1]):
             draw_block(x, y + off)
 

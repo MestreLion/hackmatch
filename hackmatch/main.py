@@ -72,11 +72,7 @@ def parse_args(argv: t.Optional[t.List[str]] = None) -> argparse.Namespace:
 
 def main(argv: t.Optional[t.List[str]] = None) -> None:
     args = parse_args(argv)
-    logging.basicConfig(
-        level=args.loglevel,
-        datefmt="%Y-%m-%d %H:%M:%S",
-        format="[%(asctime)s %(levelname)-6.6s] %(message)s",
-    )
+    u.setup_logging(args.loglevel)
     log.debug(args)
     c.init(args)
 
@@ -84,10 +80,9 @@ def main(argv: t.Optional[t.List[str]] = None) -> None:
         board = gui.get_board_from_path(path=c.args.path, debug=c.args.debug)
         if board is None:
             return
-        log.info("Board:\n%s", board)
+        log.info("\n%s", board)
         moves = board.solve()
-        if moves:
-            log.info("Moves: %s", moves)
+        log.info("\t" + ", ".join(f"{_}" for _ in moves))
         return
 
     settings: c.GameSettings = game.read_settings()
@@ -105,10 +100,9 @@ def main(argv: t.Optional[t.List[str]] = None) -> None:
     timer = u.Timer(60) if c.args.benchmark else u.FakeTimer(0)
     while not timer.expired:
         board = window.new_board(debug=c.args.debug)
-        log.info("Board:\n%s", board)
+        log.info(board)
         moves = board.solve()
-        if moves:
-            log.info("Moves: %s", moves)
+        log.info(", ".join(f"{_}" for _ in moves))
         if not c.args.watch:
             window.send_moves(moves)
         # Laelath: SOLVE_WAIT_TIME = 4 * KEY_DELAY + 12ms = 80ms. Arbitrary?
