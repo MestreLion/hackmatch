@@ -40,6 +40,9 @@ https://sunzenshen.github.io/presentations/2018/12/08/dissecting-hackmatch-solve
 # - gui.parse_image(): Detect matched blocks (white contour)
 # - Improve installer
 # - Study and take lessons from Fidel's solver
+#   - Alternate solve(): GRAB/SWAP for each col, derive needed LEFT/RIGHT
+#     Avoids tons of duplicate, meaningless boards with same score
+#     More parallelization: from 4 to 7 (cols) or 14 (7 cols x 2 actions)
 # - Detect game's screens and use PyAutoGUI to go from title to start game
 # - Improve 1366x768 so it actually works
 # - Config file
