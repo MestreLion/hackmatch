@@ -98,6 +98,15 @@ def parse_args(argv: t.Optional[t.List[str]] = None) -> argparse.Namespace:
         action="store_true",
         help="Watch mode, read and solve board but do not play.",
     )
+    parser.add_argument(
+        "--solve-time",
+        dest="timeout",
+        type=int,
+        default=ai.MAX_SOLVE_TIME,
+        metavar="TIME",
+        help="Time in milliseconds to solve each parsed board, 0 for unlimited."
+        " [Default: %(default)s ms]",
+    )
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
@@ -133,7 +142,7 @@ def main(argv: t.Optional[t.List[str]] = None) -> None:
         if board is None:
             return
         log.info("%s%s", "\n" if c.args.debug else "", board)
-        moves = board.solve()
+        moves = board.solve(c.args.timeout)
         log.info("\t" + ", ".join(f"{_}" for _ in moves))
         return
 
@@ -149,11 +158,11 @@ def main(argv: t.Optional[t.List[str]] = None) -> None:
     assert window is not None
     log.info("Game window: %s", window)
 
-    timer = u.Timer(60) if c.args.benchmark else u.FakeTimer(0)
+    timer = u.Timer(60) if c.args.benchmark else u.Clock()
     while not timer.expired:
         board = window.new_board(debug=c.args.debug)
         log.info("%s%s", "\n" if c.args.debug else u.Terminal.CLEAR, board)
-        moves = board.solve()
+        moves = board.solve(c.args.timeout)
         log.info("\t" + ", ".join(f"{_}" for _ in moves))
         if not c.args.watch:
             window.send_moves(moves)

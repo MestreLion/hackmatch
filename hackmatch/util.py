@@ -138,7 +138,10 @@ class Timer:
         return remaining
 
 
-class FakeTimer(Timer):
+class Clock(Timer):
+    def __init__(self) -> None:
+        super().__init__(0)
+
     @property
     def expired(self) -> bool:
         return False

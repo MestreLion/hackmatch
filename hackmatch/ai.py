@@ -25,7 +25,7 @@ from . import config as c
 from . import util as u
 
 # Laelath: MAX_SEARCH_TIME = 110ms
-MAX_SOLVE_TIME = 0.850  # ~50 frames @ 60 FPS
+MAX_SOLVE_TIME = 850  # ~50 frames @ 60 FPS
 
 Coord: u.TypeAlias = t.Tuple[int, int]
 Grid: u.TypeAlias = t.Dict[Coord, "Block"]
@@ -239,8 +239,8 @@ class Board:
                 coords.append(coord)
         return coords
 
-    def solve(self) -> t.List[Move]:
-        return solve(self)
+    def solve(self, max_solve_time: int = MAX_SOLVE_TIME) -> t.List[Move]:
+        return solve(self, max_solve_time)
 
     def heights(self) -> t.List[int]:
         return list(
@@ -299,12 +299,12 @@ class Board:
         log.debug("Moves (%s): %s", len(self.moves), self.moves)
 
 
-def solve(board: Board) -> t.List[Move]:
+def solve(board: Board, max_solve_time: int = MAX_SOLVE_TIME) -> t.List[Move]:
     board.debug(show_self=False)
     boards: t.Set[Board] = {board}
     best = Candidate(board=board, score=board.score(), has_match=board.has_match())
     queue: t.Deque[Board] = collections.deque([board])  # First in, first out
-    timer = u.Timer(MAX_SOLVE_TIME)
+    timer = u.Timer(max_solve_time / 1000) if max_solve_time > 0 else u.Clock()
     steps = 0
     while queue and not timer.expired and not best.has_match:
         parent = queue.popleft()
