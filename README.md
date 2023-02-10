@@ -1,4 +1,4 @@
-# Cross-platform Exapunks HACK*MATCH bot in Python
+# Cross-platform Exapunks HACK*MATCH bot
 
 Yet another bot for [Exapunks][1]' amazing (and annoyingly hard)
 **HACK*MATCH** arcade minigame.
@@ -11,7 +11,7 @@ and think such arcade game have no place in a logic/puzzle _programming_ game
 such as Exapunks.
 
 Why create another bot? Well, I felt it would not be cheating if I
-_programmed_ the bot myself! **Exapunks** is all about coding and hacking,
+_programmed_ the bot myself! Exapunks is all about coding and hacking,
 so creating a bot to hack _it_ fits in perfectly!
 
 ---
@@ -21,7 +21,7 @@ Features
 - Works on several resolutions, from 1920x1200 to 1366x768
 - Read and write game settings to get user's current keyboard mapping and to
   automatically turn off CRT effects.
-- Launch the game if needed, using Steam's [`steam://rungameid/716490`]() game URI.
+- Launch the game if needed, using Steam's `steam://rungameid/716490` game URI.
 - Pure Python: easy to understand, install and run, no compiler or other tools needed.
 - Command-line arguments to benchmark, debug, watch-only and more.
 
@@ -37,7 +37,7 @@ Features
     - An elegant code with great insights on image parsing and board solving.
     - +8M points recorded on YouTube.
 
-And special thanks to [Dissecting fidelSolver's Game Bot for Playing Hack*Match][3],
+Special thanks to [Dissecting fidelSolver's Game Bot for Playing Hack*Match][3],
 an amazing presentation by Alan Shen that helped me understand the basic concepts
 and building blocks of both above projects.
 
@@ -62,8 +62,8 @@ all in a single step:
 
     ./install.sh
 
-> _**Note**_: even if code itself is compatible with earlier Python versions,
-> some dependencies require **Python 3.7**. It was fully tested on Python 3.8.
+> _**Note**: even if code itself is compatible with earlier Python versions,
+> some dependencies require **Python 3.7**. It was fully tested on Python 3.8._
 
 Usage
 -----
@@ -114,7 +114,7 @@ See the [To-Do List](./TODO.md) for more updated technical information and
 planned features.
 
 If you find a bug or have any enhancement request, please to open a
-[new issue](../../issues/new)
+[new issue](/issues/new)
 
 
 Author
