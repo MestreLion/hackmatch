@@ -94,9 +94,9 @@ def main() -> None:
     logging.basicConfig(level=loglevel, format="%(levelname)-5.5s: %(message)s")
 
     funcs = tuple(
-        k for k, v in globals().items() if callable(v) and k not in (
-            "main", "benchmark", "Arg"
-        )
+        k
+        for k, v in globals().items()
+        if callable(v) and k not in ("main", "benchmark", "Arg")
     )
     if len(sys.argv) < 2:
         print(
