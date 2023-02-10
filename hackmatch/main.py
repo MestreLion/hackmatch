@@ -3,50 +3,7 @@
 # License: GPLv3 or later, at your choice. See <http://www.gnu.org/licenses/gpl>
 """
 Exapunks HACK*MATCH Bot
-
-Main features
-
-- Cross Platform, works on Windows, macOS and Linux
-- Works on several resolutions, from 1920x1200 to 1366x768
-- Read game settings to get user keyboard mapping and turn off CRT automatically
-- Launch the game using Steam's game URI
-- Pure Python: easy to understand, install and run
-- Command-line arguments to benchmark, debug and watch-only
-
-Heavily inspired by and adapted from:
-
-- Fidel-solver's exapunks-hack-match bot
-    - C++, X11 and 1600x900 only, requires custom keys, fuzzy tolerance on colors
-    - Arguably the most well-known reference, possibly the first bot published
-    - +500K points recorded on YouTube
-    - https://github.com/fidel-solver/exapunks-hack-match
-
-- Laelath's hack-match-bot
-    - Rust, X11 and 1920x1080 only, requires default keys and no CRT, no fuzziness
-    - An elegant code with great insights on image parsing and board solving
-    - +8M points recorded on YouTube
-    - https://github.com/laelath/hack-match-bot
-
-And special thanks to "Dissecting fidelSolver's Game Bot for Playing Hack*Match",
-an amazing presentation by Alan Shen that helped me understand the basic concepts
-and building blocks of both above projects.
-https://sunzenshen.github.io/presentations/2018/12/08/dissecting-hackmatch-solver.html
 """
-# TODO:
-# - Pygame logging: show ai.Board and solve() graphically!
-# - Parallelize ai.solve() and optimize ai.Board
-# - Make sure Window is active before sending keys?
-# - Implement gui.find_phage_pink(), and/or detect throw
-# - gui.parse_image(): Detect matched blocks (white contour)
-# - Improve installer
-# - Study and take lessons from Fidel's solver
-#   - Alternate solve(): GRAB/SWAP for each col, derive needed LEFT/RIGHT
-#     Avoids tons of duplicate, meaningless boards with same score
-#     More parallelization: from 4 to 7 (cols) or 14 (7 cols x 2 actions)
-# - Detect game's screens and use PyAutoGUI to go from title to start game
-# - Improve 1366x768 so it actually works
-# - Config file
-# - Consider adding all exception classes to util (u.HMError.__subclasses__())
 
 __version__ = "0.9"
 
