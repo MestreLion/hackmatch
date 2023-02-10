@@ -19,6 +19,7 @@ import pyautogui
 
 Arg = t.Union[str, int]  # TypeAlias
 log = logging.getLogger(os.path.basename(os.path.splitext(__file__)[0]))
+
 # ------------------------------------------------------------------------------
 
 
@@ -28,6 +29,7 @@ def fps_limit(fps: int = 60) -> None:
     i = 0
     t0 = time.perf_counter()
     timer = FrameRateLimiter(fps)
+    log.info("Measuring frame rate in an infinite loop. Press CTRL+C to stop.")
     try:
         while True:
             i += 1
@@ -39,7 +41,7 @@ def fps_limit(fps: int = 60) -> None:
     print(f"{i:6d} frames, {d:.2f}s, {i / d:5.1f} FPS")
 
 
-def getpixel(x: int = 0, y: int = 0) -> None:
+def get_pixel(x: int = 0, y: int = 0) -> None:
     rgb = PIL.ImageGrab.grab(xdisplay="").getpixel((x, y))
     print(rgb)
 
@@ -92,7 +94,9 @@ def main() -> None:
     logging.basicConfig(level=loglevel, format="%(levelname)-5.5s: %(message)s")
 
     funcs = tuple(
-        k for k, v in globals().items() if callable(v) and k not in ("main", "benchmark")
+        k for k, v in globals().items() if callable(v) and k not in (
+            "main", "benchmark", "Arg"
+        )
     )
     if len(sys.argv) < 2:
         print(
