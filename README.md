@@ -110,11 +110,9 @@ Contributing
 
 Patches are welcome! Fork, hack, request pull!
 
-See the [To-Do List](./TODO.md) for more updated technical information and
-planned features.
+See the [To-Do List][5] for more updated technical information and planned features.
 
-If you find a bug or have any enhancement request, please to open a
-[new issue](/issues/new)
+If you find a bug or have any enhancement request, please to open a [new issue][6]
 
 
 Author
@@ -135,3 +133,5 @@ There is NO WARRANTY, to the extent permitted by law.
 [2]: https://steamcommunity.com/stats/716490/achievements
 [3]: https://sunzenshen.github.io/presentations/2018/12/08/dissecting-hackmatch-solver.html
 [4]: https://pyautogui.readthedocs.io/en/latest/install.html
+[5]: https://github.com/MestreLion/hackmatch/blob/main/TODO.md
+[6]: https://github.com/MestreLion/hackmatch/issues
