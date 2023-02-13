@@ -10,12 +10,12 @@ description = "Exapunks HACK*MATCH Bot"
 license =  {text = "GPL-3.0-or-later"}  # Free text, using SPDX
 urls."Homepage" = "https://github.com/MestreLion/hackmatch"
 urls."Source Code" = "https://github.com/MestreLion/hackmatch"
-urls."Bug Tracker" = "https://github.com/MestreLion/hackmatch/issues"
+urls."Issue Tracker" = "https://github.com/MestreLion/hackmatch/issues"
 readme = "README.md"
 keywords = [ "exapunks", "hackmatch", "game", "bot"]
 classifiers = [
     # https://pypi.org/classifiers/
-    "Development Status :: 1 - Planning",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: End Users/Desktop",
     "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Natural Language :: English",
@@ -25,6 +25,9 @@ classifiers = [
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Games/Entertainment :: Arcade",
     "Topic :: Games/Entertainment :: Puzzle Games",
     "Topic :: Multimedia :: Graphics",
