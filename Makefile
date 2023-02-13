@@ -26,7 +26,7 @@ default: format check
 
 ## - run: run project
 run: venv
-	$(venv)/hackmatch-bot
+	exec $(venv)/hackmatch-bot
 
 ## - style: apply `black` formatter
 format: venv
