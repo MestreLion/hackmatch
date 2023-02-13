@@ -74,17 +74,16 @@ version = {attr = "hackmatch.main.__version__"}
 # -----------------------------------------------------------------------------
 # Tools
 
-# Run as: mypy
+# Run as: make check
 [tool.mypy]
 packages = "hackmatch"
 exclude = ["venv"]
 strict = true
 
-# Run as: black .
+# Run as: make format
 [tool.black]
 target-version = ["py37", "py38", "py39", "py310", "py311"]
 line-length = 94
-#include = '\.pyi?$'
 
 #[tool.isort]
 #profile = "black"
