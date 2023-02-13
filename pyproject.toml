@@ -40,8 +40,7 @@ requires-python = ">=3.7"  # from setuptools >= 59.3 and other dependencies
 dependencies = [
     "Pillow",
     "PyAutoGUI",
-    # Using a pinned commit until the next release after 0.0.42 (0.0.43 or 0.1)
-    "PyWinCtl @ git+https://github.com/Kalmat/PyWinCtl.git@4b4a9aeb89ab40f436a",
+    "PyWinCtl >= 0.0.43",  # Window.bbox, py.typed
     "typing_extensions ; python_version < '3.10'",  # TypeAlias
 ]
 [project.optional-dependencies]

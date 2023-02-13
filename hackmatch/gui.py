@@ -230,7 +230,7 @@ class GameWindow:
 
     @property
     def bbox(self) -> BBox:
-        # return self.window.bbox  # in PyWinCtl >= 0.43
+        # TODO: return self.window.bbox  # in PyWinCtl >= 0.1
         try:
             return pywinctl.Rect(*self.window.topleft, *self.window.bottomright)
         except Exception as e:
@@ -238,7 +238,8 @@ class GameWindow:
 
     @property
     def size(self) -> Size:
-        return self.window.size
+        # TODO: return self.window.size   # i.e., drop cast() in PyWinCtl >= 0.1
+        return t.cast(Size, self.window.size)
 
     def activate(self, reposition: bool = True) -> bool:
         if self.window.isActive or self.window.activate(wait=True):
