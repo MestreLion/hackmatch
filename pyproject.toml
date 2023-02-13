@@ -66,6 +66,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = ["hackmatch"]
+package_data = {'' = ['py.typed']}
 
 [tool.setuptools.dynamic]
 version = {attr = "hackmatch.main.__version__"}
