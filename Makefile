@@ -53,15 +53,23 @@ upload: venv build
 
 ## - profile: Generate and open Dot graph at $PROF_DIR with `cProfile` and `gprof2dot`
 profile: $(dotgraph)
-
 $(PROF_DIR)/.gitignore:
 	mkdir -p -- $(PROF_DIR)
 	echo '*' > $(PROF_DIR)/.gitignore
-
 $(dotgraph): $(venv)/gprof2dot $(PROF_DIR)/.gitignore
 	$(python) -m cProfile -o $(pstats) -m hackmatch -q --benchmark
 	$(venv)/gprof2dot -f pstats -o $@ -- $(pstats)
 	xdg-open $@
+
+## system-packages: apt-install system pre-dependencies `python3-{tk,dev,venv}`
+define is_installed
+	[ -n "$(shell dpkg-query --showformat='$${Version}' --show "${1}" 2>/dev/null || true)" ]
+endef
+system-packages:
+	# I'm *sure* there's a better way of doing this... my make-fu is weak, PRs welcome!
+	$(call is_installed,python3-tk)               || sudo apt install python3-tk
+	$(call is_installed,$(notdir $(PYTHON)-dev))  || sudo apt install $(PYTHON)-dev
+	$(call is_installed,$(notdir $(PYTHON)-venv)) || sudo apt install $(PYTHON)-venv
 
 $(venv): pyproject.toml
 	$(PYTHON) -m venv $(ENV_DIR)
@@ -70,7 +78,7 @@ $(venv): pyproject.toml
 	$(pip) install --upgrade -e .[dev,extra]
 	touch -- $(venv)
 
-.PHONY: default style check build upload profile
+.PHONY: default style check build upload profile system-packages
 
 # -----------------------------------------------------------------------------
 ## - venv: create a virtual environment in $ENV_DIR, by default `./venv`
