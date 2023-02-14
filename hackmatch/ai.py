@@ -67,7 +67,9 @@ class Move(enum.Enum):
     # fmt: off
     LEFT  = "KeyMapping.Left"
     RIGHT = "KeyMapping.Right"
-#   START = "KeyMapping.Start"
+    UP    = "KeyMapping.Up"
+    DOWN  = "KeyMapping.Down"
+    START = "KeyMapping.Start"
     GRAB  = "KeyMapping.X"
     THROW = "KeyMapping.X"
     SWAP  = "KeyMapping.Y"
@@ -199,7 +201,7 @@ class Board:
                 self.set_block(col, row, self.get_block(col, row - 1))
                 self.set_block(col, row - 1, block)
                 self._groups = []  # invalidate cache
-        else:  # Exchange: move.GRAB/THROW
+        elif move == Move.GRAB:
             row, block = self.lowest_block(col)
             if self.held_block:
                 # Throw: lowest block must not be at the lowest row
@@ -322,7 +324,7 @@ def solve(board: Board, max_solve_time: int = MAX_SOLVE_TIME) -> t.List[Move]:
         if steps < length + 1:
             steps = length + 1
         # Get a new board for each possible movement
-        for move in Move:
+        for move in (Move.LEFT, Move.RIGHT, Move.GRAB, Move.SWAP):
             board = parent.clone()
             board.move(move)
             if board in boards:
@@ -362,6 +364,7 @@ def solve(board: Board, max_solve_time: int = MAX_SOLVE_TIME) -> t.List[Move]:
 TITLE_BOARDS: t.List[Board] = [
     Board.from_string(_)
     for _ in (
-        ".......-rrr....-..r.rr.-.......-.......-.......-....r..-_",  # 1600x900
+        ".......-rrr....-..r.rr.-.......-.......-.......-....r..-_",
+        ".......-rrr....-..r....-.......-.......-.......-.......-....r..-_",
     )
 ]

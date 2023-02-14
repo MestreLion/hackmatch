@@ -104,8 +104,12 @@ def main(argv: t.Optional[t.List[str]] = None) -> None:
             board = ai.Board.from_string(c.args.string)
         if board is None:
             return
-        log.info("%s%s", "\n" if c.args.debug else "", board)
-        moves = board.solve(c.args.timeout)
+        if board.is_title:
+            log.info("HACK*MATCH title screen detected")
+            moves = [ai.Move.UP, ai.Move.GRAB]
+        else:
+            log.info("%s%s", "\n" if c.args.debug else "", board)
+            moves = board.solve(c.args.timeout)
         log.info("\t" + ", ".join(f"{_}" for _ in moves))
         return
 
@@ -126,7 +130,7 @@ def main(argv: t.Optional[t.List[str]] = None) -> None:
         board = window.new_board(debug=c.args.debug)
         if board.is_title:
             log.info("HACK*MATCH title screen detected")
-            moves = [ai.Move.GRAB]  # Start the game
+            moves = [ai.Move.UP, ai.Move.GRAB]  # Start the game
         else:
             log.info("%s%s", "\n" if c.args.debug else u.Terminal.CLEAR, board)
             moves = board.solve(c.args.timeout)
