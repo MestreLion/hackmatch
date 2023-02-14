@@ -108,8 +108,21 @@ class Board:
         # self._score: int = 0
 
     @property
+    def id(self) -> object:
+        """Identity when solving the board, ignores moves list"""
+        return (
+            frozenset((coord, block) for (coord, block) in self.grid.items() if block),
+            self.phage_col,
+            self.held_block,
+        )
+
+    @property
     def moves(self) -> t.List[Move]:
         return self._moves
+
+    @property
+    def is_title(self) -> bool:
+        return self in TITLE_BOARDS
 
     @classmethod
     def from_string(
@@ -120,13 +133,18 @@ class Board:
         lines = text.replace(sep, "\n").splitlines()
         if not lines:
             return self
-
+        # Parse grid lines for blocks
+        row = -1
         assert len(lines) <= c.BOARD_ROWS + 1
         for row, line in enumerate(lines[:-1]):
             assert not line or len(line) == c.BOARD_COLS
             for col, char in enumerate(line):
-                if char != empty:
-                    self.set_block(col, row, Block(char))
+                self.set_block(col, row, Block.EMPTY if char == empty else Block(char))
+        # Fill remaining lines with Block.EMPTY
+        for row in range(row + 1, c.BOARD_ROWS):
+            for col in range(c.BOARD_COLS):
+                self.set_block(col, row, Block.EMPTY)
+        # Parse ground line for phage column and held item
         line = lines[-1]
         assert len(line) <= c.BOARD_COLS
         for col, char in enumerate(lines[-1]):
@@ -203,14 +221,7 @@ class Board:
         return self.grid == other.grid and self.held_block == self.held_block
 
     def __hash__(self) -> int:
-        """Identity when solving the board, ignores moves list"""
-        return hash(
-            (
-                tuple((coord, block) for (coord, block) in self.grid.items() if block),
-                self.phage_col,
-                self.held_block,
-            )
-        )
+        return hash(self.id)
 
     def __str__(self) -> str:
         return self.serialize(sep="\n")
@@ -346,3 +357,11 @@ def solve(board: Board, max_solve_time: int = MAX_SOLVE_TIME) -> t.List[Move]:
     if center:
         best.board.moves.extend(abs(center) * ([Move.LEFT] if center > 0 else [Move.RIGHT]))
     return best.board.moves
+
+
+TITLE_BOARDS: t.List[Board] = [
+    Board.from_string(_)
+    for _ in (
+        ".......-rrr....-..r.rr.-.......-.......-.......-....r..-_",  # 1600x900
+    )
+]

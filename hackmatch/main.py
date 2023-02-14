@@ -124,8 +124,12 @@ def main(argv: t.Optional[t.List[str]] = None) -> None:
     timer = u.Timer(60) if c.args.benchmark else u.Clock()
     while not timer.expired:
         board = window.new_board(debug=c.args.debug)
-        log.info("%s%s", "\n" if c.args.debug else u.Terminal.CLEAR, board)
-        moves = board.solve(c.args.timeout)
+        if board.is_title:
+            log.info("HACK*MATCH title screen detected")
+            moves = [ai.Move.GRAB]  # Start the game
+        else:
+            log.info("%s%s", "\n" if c.args.debug else u.Terminal.CLEAR, board)
+            moves = board.solve(c.args.timeout)
         log.info("\t" + ", ".join(f"{_}" for _ in moves))
         if not c.args.watch:
             window.send_moves(moves)
