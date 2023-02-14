@@ -18,7 +18,6 @@ https://github.com/laelath/hack-match-bot
 import collections
 import enum
 import logging
-import random
 import typing as t
 
 from . import config as c
@@ -346,17 +345,4 @@ def solve(board: Board, max_solve_time: int = MAX_SOLVE_TIME) -> t.List[Move]:
     center = best.board.phage_col - (c.BOARD_COLS // 2)
     if center:
         best.board.moves.extend(abs(center) * ([Move.LEFT] if center > 0 else [Move.RIGHT]))
-    return best.board.moves  # or deep_blue(board)
-
-
-# noinspection PyUnusedLocal
-def deep_blue(board: Board) -> t.List[Move]:
-    """An impressive, modern AI capable of scoring up to 10,000!"""
-    moves: t.List[Move] = []
-    while len(moves) < 10:
-        moves.extend(random.choice(([Move.SWAP],) + 3 * ([Move.SWAP, Move.GRAB],)))
-        moves.extend(
-            [random.choice((Move.LEFT, Move.RIGHT))]
-            * random.randint(0, (c.BOARD_COLS // 2) + 1)
-        )
-    return moves
+    return best.board.moves
