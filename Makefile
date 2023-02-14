@@ -8,9 +8,9 @@
 include .env
 
 ## PYTHON: System python, used to create the virtual environment
-PYTHON  ?= python3
+PYTHON   ?= python3
 ## ENV_DIR: Path to the virtual environment, absolute or relative to current dir
-ENV_DIR ?= venv
+ENV_DIR  ?= venv
 
 # Derived vars:
 # path to virtual environment bin dir
@@ -47,7 +47,7 @@ upload: venv build
 
 $(venv): pyproject.toml
 	$(PYTHON) -m venv $(ENV_DIR)
-	$(python) -m pip install --upgrade pip
+	$(python) -m pip --disable-pip-version-check install --upgrade pip
 	$(pip) install --upgrade setuptools wheel build twine
 	$(pip) install --upgrade -e .[dev,extra]
 	touch -- $(venv)
@@ -86,7 +86,7 @@ help:
 	@echo "Available env vars and targets:"
 	@sed -n 's/^.*##[ ]//p' Makefile
 
-$(venv)/%: venv
+$(venv)/%: | venv
 	$(pip) install --upgrade $*
 	touch -- $@
 
