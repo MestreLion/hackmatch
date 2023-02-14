@@ -26,6 +26,7 @@ default: format check
 
 ## - run: run project
 run: venv
+	# alternative: exec $(python) -m hackmatch
 	exec $(venv)/hackmatch-bot
 
 ## - style: apply `black` formatter
