@@ -29,6 +29,8 @@ MAX_SOLVE_TIME = 850  # ~50 frames @ 60 FPS
 Coord: u.TypeAlias = t.Tuple[int, int]
 Grid: u.TypeAlias = t.Dict[Coord, "Block"]
 
+solve_speed: t.List[float] = []
+
 log = logging.getLogger(__name__)
 
 
@@ -339,10 +341,12 @@ def solve(board: Board, max_solve_time: int = MAX_SOLVE_TIME) -> t.List[Move]:
                 best = Candidate(board=board, score=score)
             queue.append(board)
     elapsed = timer.elapsed
+    speed = len(boards) / elapsed
     if best.has_match:
         reason = "MATCH FOUND! After"
     elif queue:
         reason = "TIMEOUT after"
+        solve_speed.append(speed)
     else:
         reason = "Completed after"
     log.info(
@@ -350,7 +354,7 @@ def solve(board: Board, max_solve_time: int = MAX_SOLVE_TIME) -> t.List[Move]:
         reason,
         elapsed * 1000,
         len(boards),
-        len(boards) / elapsed,
+        speed,
         steps,
     )
     best.board.debug("New board")

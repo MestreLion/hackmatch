@@ -168,6 +168,19 @@ def get_game_window(launch: bool = True, activate: bool = True) -> t.Optional[gu
         u.Timer(1).wait()  # Also arbitrary
 
 
+def show_stats() -> None:
+    def avg(x: t.Sequence[float]) -> float:
+        return sum(x) / len(x)
+
+    logging.getLogger().setLevel(logging.INFO)
+    # https://github.com/python/mypy/issues/9527
+    log.info(
+        "Solve speed (boards per second):"
+        "\n\tSamples: %s\n\tMin = %5s\n\tAvg = %5s\n\tMax = %5s",
+        *(int(f(ai.solve_speed)) for f in (len, min, avg, max)),  # type: ignore
+    )
+
+
 def run(argv: t.Optional[t.List[str]] = None) -> None:
     """Main CLI entry point"""
     try:
@@ -181,3 +194,6 @@ def run(argv: t.Optional[t.List[str]] = None) -> None:
     except KeyboardInterrupt:
         log.info("Stopped")
         sys.exit(2)
+    finally:
+        if ai.solve_speed:
+            show_stats()
