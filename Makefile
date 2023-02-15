@@ -62,14 +62,14 @@ $(dotgraph): $(venv)/gprof2dot $(PROF_DIR)/.gitignore
 	xdg-open $@
 
 ## system-packages: apt-install system pre-dependencies `python3-{tk,dev,venv}`
-define is_installed
-	[ -n "$(shell dpkg-query --showformat='$${Version}' --show "${1}" 2>/dev/null || true)" ]
-endef
 system-packages:
 	# I'm *sure* there's a better way of doing this... my make-fu is weak, PRs welcome!
 	$(call is_installed,python3-tk)               || sudo apt install python3-tk
-	$(call is_installed,$(notdir $(PYTHON)-dev))  || sudo apt install $(PYTHON)-dev
-	$(call is_installed,$(notdir $(PYTHON)-venv)) || sudo apt install $(PYTHON)-venv
+	$(call is_installed,$(notdir $(PYTHON))-dev)  || sudo apt install $(notdir $(PYTHON))-dev
+	$(call is_installed,$(notdir $(PYTHON))-venv) || sudo apt install $(notdir $(PYTHON))-venv
+define is_installed
+	[ -n "$(shell dpkg-query --showformat='$${Version}' --show "${1}" 2>/dev/null || true)" ]
+endef
 
 $(venv): pyproject.toml
 	$(PYTHON) -m venv $(ENV_DIR)
