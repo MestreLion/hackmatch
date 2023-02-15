@@ -91,7 +91,7 @@ class Group(t.NamedTuple):
 
 class Candidate(t.NamedTuple):
     board: "Board"
-    score: float
+    score: float = 0
     has_match: bool = False
 
 
@@ -327,19 +327,10 @@ def solve(board: Board, max_solve_time: int = MAX_SOLVE_TIME) -> t.List[Move]:
             steps = length + 1
         # Get a new board for each possible movement
         for move in (Move.LEFT, Move.RIGHT, Move.GRAB, Move.SWAP):
-            board = parent.clone()
-            board.move(move)
-            if board in boards:
-                # Ignore duplicated boards
-                continue
-            if board.has_match():
-                best = Candidate(board=board, score=0, has_match=True)
-                break
-            boards.add(board)
-            score = board.score()
-            if score > best.score:
-                best = Candidate(board=board, score=score)
-            queue.append(board)
+            board, best = solve_move(parent, move, boards, best)
+            if board is not parent:
+                boards.add(board)
+                queue.append(board)
     elapsed = timer.elapsed
     speed = len(boards) / elapsed
     if best.has_match:
@@ -363,6 +354,22 @@ def solve(board: Board, max_solve_time: int = MAX_SOLVE_TIME) -> t.List[Move]:
     if center:
         best.board.moves.extend(abs(center) * ([Move.LEFT] if center > 0 else [Move.RIGHT]))
     return best.board.moves
+
+
+def solve_move(
+    parent: Board, move: Move, boards: t.Set[Board], best: Candidate
+) -> t.Tuple[Board, Candidate]:
+    board = parent.clone()
+    board.move(move)
+    if board in boards:
+        # Ignore duplicated boards
+        return parent, best
+    if board.has_match():
+        return board, Candidate(board=board, has_match=True)
+    score = board.score()
+    if score > best.score:
+        return board, Candidate(board=board, score=score)
+    return board, best
 
 
 TITLE_BOARDS: t.List[Board] = [
