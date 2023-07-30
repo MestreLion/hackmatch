@@ -103,12 +103,14 @@ class Board:
         held_block: Block = Block.EMPTY,
         moves: t.Optional[t.List[Move]] = None,
         _groups: t.Optional[t.List[Group]] = None,
+        _heights: t.Optional[t.List[int]] = None,
     ):
         self.grid: Grid = {} if grid is None else grid
         self.phage_col: int = c.BOARD_COLS // 2 if phage_col is None else phage_col
         self.held_block: Block = held_block
         self._moves: t.List[Move] = [] if moves is None else moves
         self._groups: t.List[Group] = [] if _groups is None else _groups
+        self._heights: t.List[int] = [0] * c.BOARD_COLS if _heights is None else _heights
         # self._score: int = 0
 
     @property
@@ -170,6 +172,8 @@ class Board:
         # Ignoring for performance as this is only called when parsing from image
         # (when cache is not used) and from move(), which performs the reset itself.
         self.grid[col, row] = block
+        if block:
+            self._heights[col] = row + 1
 
     def clone(self) -> "Board":
         return self.__class__(
@@ -178,6 +182,7 @@ class Board:
             self.held_block,
             self.moves.copy(),
             self._groups.copy(),
+            self._heights.copy(),
         )
 
     def lowest_block(self, col: int, up_to: int = 0) -> t.Tuple[int, Block]:
@@ -188,21 +193,24 @@ class Board:
         else:
             return -1, Block.EMPTY
 
-    def move(self, move: Move) -> None:
+    def move(self, move: Move) -> bool:
         self._moves.append(move)
         col = self.phage_col
         if move == Move.LEFT:
             if col > 0:
                 self.phage_col -= 1
+                return True
         elif move == Move.RIGHT:
             if col < c.BOARD_COLS - 1:
                 self.phage_col += 1
+                return True
         elif move == Move.SWAP:
             row, block = self.lowest_block(col, 1)
             if row > 0:
                 self.set_block(col, row, self.get_block(col, row - 1))
                 self.set_block(col, row - 1, block)
                 self._groups = []  # invalidate cache
+                return True
         elif move == Move.GRAB:
             row, block = self.lowest_block(col)
             if self.held_block:
@@ -211,12 +219,37 @@ class Board:
                     self.set_block(col, row + 1, self.held_block)
                     self.held_block = Block.EMPTY
                     self._groups = []  # invalidate cache
+                    return True
             else:
                 # Grab: There must be a (non-empty) block in the column
                 if block:
                     self.set_block(col, row, self.held_block)
                     self.held_block = block
                     self._groups = []  # invalidate cache
+                    return True
+        return False
+
+    def walk_to(self, col: int) -> None:
+        # For performance this doesn't check 0 <= col < c.BOARD_COLS
+        steps = self.phage_col - col
+        if steps:
+            self.moves.extend(abs(steps) * ([Move.LEFT] if steps > 0 else [Move.RIGHT]))
+            self.phage_col = col
+
+    def act_on(
+        self, col: int, action: t.Union[t.Literal[Move.GRAB], t.Literal[Move.SWAP]]
+    ) -> bool:
+        # For performance this doesn't check 0 <= col < c.BOARD_COLS
+        steps = self.phage_col - col
+        if steps:
+            self.moves.extend(abs(steps) * ([Move.LEFT] if steps > 0 else [Move.RIGHT]))
+            self.phage_col = col
+        # TODO: improve, use self._heights!
+        if action == Move.GRAB:
+            return self.move(Move.GRAB)
+        elif action == Move.SWAP:
+            return self.move(Move.SWAP)
+        raise u.HMError("Action for ai.Board.act_on() must be either GRAB or SWAP")
 
     def __eq__(self, other: object) -> bool:
         """Equivalence when parsing blocks from image, ignores phage column and moves"""
@@ -325,19 +358,15 @@ def solve(board: Board, max_solve_time: int = MAX_SOLVE_TIME) -> t.List[Move]:
         length = len(parent.moves)
         if steps < length + 1:
             steps = length + 1
-        # Get a new board for each possible movement
-        for move in (Move.LEFT, Move.RIGHT, Move.GRAB, Move.SWAP):
-            board, best = solve_move(parent, move, boards, best)
-            if board is not parent:
-                boards.add(board)
-                queue.append(board)
+        best = solve_best_action(parent, boards, best, queue)
     elapsed = timer.elapsed
     speed = len(boards) / elapsed
+    if len(boards) > 100:
+        solve_speed.append(speed)
     if best.has_match:
         reason = "MATCH FOUND! After"
     elif queue:
         reason = "TIMEOUT after"
-        solve_speed.append(speed)
     else:
         reason = "Completed after"
     log.info(
@@ -349,19 +378,55 @@ def solve(board: Board, max_solve_time: int = MAX_SOLVE_TIME) -> t.List[Move]:
         steps,
     )
     best.board.debug("New board")
-    # Move to the middle column to help next solve() to see more boards
-    center = best.board.phage_col - (c.BOARD_COLS // 2)
-    if center:
-        best.board.moves.extend(abs(center) * ([Move.LEFT] if center > 0 else [Move.RIGHT]))
     return best.board.moves
+
+
+def solve_best_action(parent, boards, best, queue):
+    # Get a new board for each possible movement
+    for move in (Move.GRAB, Move.SWAP):
+        for col in range(c.BOARD_COLS):
+            board, best = solve_action(parent, col, move, boards, best)
+            if board is not parent:
+                if best.has_match:
+                    return best
+                boards.add(board)
+                queue.append(board)
+    return best
+
+
+def solve_best_move(parent, boards, best, queue):
+    # Get a new board for each possible movement
+    for move in ACTIONS:
+        board, best = solve_move(parent, move, boards, best)
+        if board is not parent:
+            if best.has_match:
+                break
+            boards.add(board)
+            queue.append(board)
+    return best
 
 
 def solve_move(
     parent: Board, move: Move, boards: t.Set[Board], best: Candidate
 ) -> t.Tuple[Board, Candidate]:
     board = parent.clone()
-    board.move(move)
-    if board in boards:
+    if not board.move(move) or board in boards:
+        # Ignore duplicated boards
+        return parent, best
+    if board.has_match():
+        return board, Candidate(board=board, has_match=True)
+    score = board.score()
+    if score > best.score:
+        return board, Candidate(board=board, score=score)
+    return board, best
+
+
+def solve_action(
+    parent: Board, col: int, move: Move, boards: t.Set[Board], best: Candidate
+) -> t.Tuple[Board, Candidate]:
+    board = parent.clone()
+    board.walk_to(col)
+    if not board.move(move) or board in boards:
         # Ignore duplicated boards
         return parent, best
     if board.has_match():
@@ -379,3 +444,5 @@ TITLE_BOARDS: t.List[Board] = [
         ".......-rrr....-..r....-.......-.......-.......-.......-....r..-_",
     )
 ]
+
+ACTIONS: t.Tuple[Move, ...] = (Move.LEFT, Move.RIGHT, Move.GRAB, Move.SWAP)

@@ -1,0 +1,46 @@
+Solve speed (boards per second):
+	Samples: 61
+	Min =  5490
+	Avg =  8012
+	Max = 11195
+05:16:55 * rodrigo@desktop ~/work/exapunks/hackmatch main * 2 $ hackmatch-bot -q --benchmark
+Solve speed (boards per second):
+	Samples: 31
+	Min =  6213
+	Avg =  8342
+	Max = 10312
+05:22:07 * rodrigo@desktop ~/work/exapunks/hackmatch main * $ hackmatch-bot -q --benchmark
+Solve speed (boards per second):
+	Samples: 31
+	Min =  5598
+	Avg =  7516
+	Max =  9958
+05:23:17 * rodrigo@desktop ~/work/exapunks/hackmatch main * $ hackmatch-bot -q --benchmark
+Solve speed (boards per second):
+	Samples: 27
+	Min =  3301
+	Avg =  6448
+	Max =  9919
+05:24:34 * rodrigo@desktop ~/work/exapunks/hackmatch main * $ hackmatch-bot -q --benchmark
+Solve speed (boards per second):
+	Samples: 28
+	Min =  7846
+	Avg =  9412
+	Max = 10305
+05:26:09 * rodrigo@desktop ~/work/exapunks/hackmatch main * $ hackmatch-bot -q --benchmark
+Solve speed (boards per second):
+	Samples: 32
+	Min =  6150
+	Avg =  7831
+	Max =  9315
+05:27:15 * rodrigo@desktop ~/work/exapunks/hackmatch main * $ hackmatch-bot -q --benchmark
+Solve speed (boards per second):
+	Samples: 28
+	Min =  5716
+	Avg =  8474
+	Max = 11525
+Solve speed (boards per second):
+	Samples: 92
+	Min =  6550
+	Avg =  8749
+	Max = 11284
