@@ -40,6 +40,14 @@ PHAGE_CROUCH = (-3, 3)  # Phage extra offset when crouching. X for silver, Y for
 # Laelath: KEY_DELAY=17ms; PyAutoGUI default = 0.1 = 100ms = 10 FPS
 KEY_DELAY = 0.017  # 17ms ~= 60 FPS
 
+if u.LINUX:
+    # Force X11 grabscreen (requires XCB) instead of the much slower gnome-screenshot
+    # See PIL.ImageGrab.grab()
+    # FIXME: Does not work in Wayland!
+    IMAGEGRAB_PARAMS = {"xdisplay": ""}  # Default X11 display
+else:
+    IMAGEGRAB_PARAMS = {"xdisplay": None}
+
 
 class BaseBlock(bytes, enum.Enum):
     # If value-based Enum.___contains__() is needed in Python < 3.12,
@@ -252,7 +260,7 @@ class GameWindow:
     def take_screenshot(self) -> Image:
         bbox: BBox = self.bbox
         log.debug("Taking window screenshot: %s", bbox)
-        image = PIL.ImageGrab.grab(bbox, xdisplay="")  # RGBA in macOS
+        image = PIL.ImageGrab.grab(bbox, **IMAGEGRAB_PARAMS)  # RGBA in macOS
         if image.mode != "RGB":
             image = image.convert(mode="RGB")
         return image
