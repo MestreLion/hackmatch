@@ -29,6 +29,12 @@ try:
 except ImportError:
     HAVE_PYGAME = False
 
+
+# Dummy to make mypy happy. Will be overriden on Windows platforms
+def my_documents_path(suffix: str = "") -> str:
+    return os.path.join("~/Documents", suffix)
+
+
 # Platform detection
 # Bool constants used to encapsulate detection method, currently sys.platform
 # Windows
@@ -60,6 +66,7 @@ if sys.platform == "win32":
             None, CSIDL_PERSONAL, None, SHGFP_TYPE_CURRENT, buf
         )
         return os.path.join(buf.value, suffix)
+
 
 # macOS
 elif sys.platform == "darwin":

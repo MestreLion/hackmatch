@@ -47,10 +47,10 @@ def parse_args(argv: t.Optional[t.List[str]] = None) -> argparse.Namespace:
     )
 
     parser.add_argument(
-        '-V',
-        '--version',
-        action='version',
-        version='%(prog)s version {version}'.format(version=__version__)
+        "-V",
+        "--version",
+        action="version",
+        version="%(prog)s version {version}".format(version=__version__),
     )
 
     parser.add_argument(

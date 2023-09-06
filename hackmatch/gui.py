@@ -44,7 +44,7 @@ if u.LINUX:
     # Force X11 grabscreen (requires XCB) instead of the much slower gnome-screenshot
     # See PIL.ImageGrab.grab()
     # FIXME: Does not work in Wayland!
-    IMAGEGRAB_PARAMS = {"xdisplay": ""}  # Default X11 display
+    IMAGEGRAB_PARAMS: t.Dict[str, t.Any] = {"xdisplay": ""}  # Default X11 display
 else:
     IMAGEGRAB_PARAMS = {"xdisplay": None}
 
