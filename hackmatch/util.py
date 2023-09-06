@@ -40,6 +40,26 @@ if sys.platform == "win32":
     def _run_file(path: str) -> None:
         os.startfile(path)
 
+    import ctypes, ctypes.wintypes
+
+    # noinspection PyPep8Naming
+    def my_documents_path(suffix: str = "") -> str:
+        # Adapted from https://stackoverflow.com/a/30924555/624066
+        # Default path in Vista/Win7 and above:
+        # ~/Documents = %USERPROFILE%\Documents = C:\Users\<user>\Documents
+        # Current path might be different, e.g. '~/OneDrive/Documents'
+        # See also:
+        # https://stackoverflow.com/a/20079912/624066
+        # https://learn.microsoft.com/en-us/windows/win32/shell/csidl
+        # https://github.com/wine-mirror/wine/blob/master/include/shlobj.h
+        # https://github.com/ActiveState/appdirs/blob/master/appdirs.py
+        CSIDL_PERSONAL = 5  # 'My Documents', ~/Documents by default
+        SHGFP_TYPE_CURRENT = 0  # 0 for current path, 1 for default path
+        buf = ctypes.create_unicode_buffer(ctypes.wintypes.MAX_PATH)
+        ctypes.windll.shell32.SHGetFolderPathW(
+            None, CSIDL_PERSONAL, None, SHGFP_TYPE_CURRENT, buf
+        )
+        return os.path.join(buf.value, suffix)
 
 # macOS
 elif sys.platform == "darwin":

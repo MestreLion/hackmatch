@@ -17,7 +17,7 @@ import typing as t
 from . import util as u
 
 if u.WINDOWS:
-    SAVE_PATH_PREFIX = "~/Documents/My Games"
+    SAVE_PATH_PREFIX = u.my_documents_path("My Games")  # by default "~/Documents/My Games"
 
 elif u.MACOS:
     SAVE_PATH_PREFIX = "~/Library/Application Support"
