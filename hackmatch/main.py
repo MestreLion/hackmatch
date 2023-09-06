@@ -5,7 +5,7 @@
 Exapunks HACK*MATCH Bot
 """
 
-__version__ = "1.2"
+__version__ = "1.2+dev"
 
 import argparse
 import logging
@@ -44,6 +44,13 @@ def parse_args(argv: t.Optional[t.List[str]] = None) -> argparse.Namespace:
         const=logging.DEBUG,
         action="store_const",
         help="Verbose mode, output extra info.",
+    )
+
+    parser.add_argument(
+        '-V',
+        '--version',
+        action='version',
+        version='%(prog)s version {version}'.format(version=__version__)
     )
 
     parser.add_argument(
