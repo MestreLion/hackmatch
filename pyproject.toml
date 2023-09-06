@@ -43,7 +43,7 @@ requires-python = ">=3.7"  # from setuptools >= 59.3 and other dependencies
 dependencies = [
     "Pillow",
     "PyAutoGUI",
-    "PyWinCtl >= 0.0.43",  # Window.bbox, py.typed
+    "PyWinCtl == 0.0.43",  # Window.bbox, py.typed
     "typing_extensions ; python_version < '3.10'",  # TypeAlias
 ]
 [project.optional-dependencies]
