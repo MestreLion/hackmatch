@@ -5,7 +5,7 @@
 Exapunks HACK*MATCH Bot
 """
 
-__version__ = "1.2+dev"
+__version__ = "1.3"
 
 import argparse
 import logging
