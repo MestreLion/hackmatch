@@ -14,6 +14,13 @@ Why create another bot? Well, I felt it would not be cheating if I
 _programmed_ the bot myself! Exapunks is all about coding and hacking,
 so creating a bot to hack _it_ fits in perfectly!
 
+<div>
+  <a href="https://www.youtube.com/watch?v=h5jue7T-gXk">
+    <img src ="https://img.youtube.com/vi/h5jue7T-gXk/maxresdefault.jpg" />
+    <p align="center">See it in action!</p>
+  </a>
+</div>
+
 ---
 Features
 --------
