@@ -7,6 +7,8 @@
 # For customizing defaults, such as PYTHON
 include .env
 
+# TODO: add SLUG to avoid hard-coding project name
+
 ## PYTHON: System python, used to create the virtual environment
 PYTHON   ?= python3
 ## ENV_DIR: Path to the virtual environment, absolute or relative to current dir
@@ -49,7 +51,7 @@ build: venv default
 
 ## - upload: upload built packages to PyPI using `twine`
 upload: venv build
-	$(venv)/twine upload dist/*
+	$(venv)/twine upload --repository hackmatch -- dist/*
 
 ## - profile: Generate and open Dot graph at $PROF_DIR with `cProfile` and `gprof2dot`
 profile: $(dotgraph)
@@ -61,7 +63,7 @@ $(dotgraph): $(venv)/gprof2dot $(PROF_DIR)/.gitignore
 	$(venv)/gprof2dot -f pstats -o $@ -- $(pstats)
 	xdg-open $@
 
-## system-packages: apt-install system pre-dependencies `python3-{tk,dev,venv}`
+## - system-packages: apt-install system pre-dependencies `python3-{tk,dev,venv}`
 system-packages:
 	# I'm *sure* there's a better way of doing this... my make-fu is weak, PRs welcome!
 	$(call is_installed,python3-tk)               || sudo apt install python3-tk
