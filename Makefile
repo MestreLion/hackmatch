@@ -5,7 +5,7 @@
 # Inspired by https://venthur.de/2021-03-31-python-makefiles.html
 
 # For customizing defaults, such as PYTHON
-include .env
+-include .env
 
 # TODO: add SLUG to avoid hard-coding project name
 
@@ -27,8 +27,8 @@ pip     := $(venv)/pip
 now      := $(shell date '+%Y%m%d%H%M%S')
 pstats   := $(PROF_DIR)/hackmatch_$(now).pstats
 dotgraph := $(PROF_DIR)/hackmatch_$(now).dot
-
 # -----------------------------------------------------------------------------
+
 ## - default: format and check
 default: format check
 
@@ -76,13 +76,13 @@ endef
 $(venv): pyproject.toml
 	$(PYTHON) -m venv $(ENV_DIR)
 	$(python) -m pip --disable-pip-version-check install --upgrade pip
-	$(pip) install --upgrade setuptools wheel build twine
+	$(pip) install --upgrade setuptools build twine
 	$(pip) install --upgrade -e .[dev,extra]
 	touch -- $(venv)
 
-.PHONY: default style check build upload profile system-packages
-
+.PHONY: default run format check build upload profile system-packages
 # -----------------------------------------------------------------------------
+
 ## - venv: create a virtual environment in $ENV_DIR, by default `./venv`
 venv: $(venv)
 
@@ -118,4 +118,4 @@ $(venv)/%: | venv
 	$(pip) install --upgrade $*
 	touch -- $@
 
-.PHONY: venv venv-clean python ipython shell bash clean clean-all help
+.PHONY: venv venv-clean python ipython bash clean clean-all help
