@@ -11,7 +11,6 @@ import logging
 import typing as t
 
 import PIL.Image, PIL.ImageGrab, PIL.ImageDraw
-import pyautogui
 import pywinctl
 
 from . import ai
@@ -19,6 +18,10 @@ from . import config as c
 from . import game
 from . import util as u
 
+if u.WINDOWS:
+    import pydirectinput as pyautogui
+else:
+    import pyautogui
 
 log = logging.getLogger(__name__)
 # Silence PIL debug messages when saving PNGs
@@ -487,7 +490,7 @@ def get_keyname(keycode: t.Union[str, int]) -> str:
         name = _get_keyname(int(keycode))
     except (ValueError, UnicodeDecodeError):
         raise InvalidValueError("Invalid key code: %s", keycode)
-    if name not in pyautogui.KEY_NAMES:
+    if not u.WINDOWS and name not in pyautogui.KEY_NAMES:
         raise InvalidValueError("Invalid key name: %r, keycode=%r", name, keycode)
     return name
 
