@@ -8,6 +8,7 @@ GUI Input and Output
 
 import enum
 import logging
+import sys
 import typing as t
 
 import PIL.Image, PIL.ImageGrab, PIL.ImageDraw
@@ -18,7 +19,9 @@ from . import config as c
 from . import game
 from . import util as u
 
-if u.WINDOWS:
+# sys.platform redundant check needed to make MyPy happy :(
+# https://mypy.readthedocs.io/en/stable/common_issues.html#version-and-platform-checks
+if u.WINDOWS or sys.platform == "win32":
     import pydirectinput as pyautogui
 else:
     import pyautogui
