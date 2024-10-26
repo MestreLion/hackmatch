@@ -1,12 +1,8 @@
+### Project ###
 *.dot
 *.pstats
 test*
 requirements.txt
-
-### Project ###
-unrar/*.tar.gz
-unrar/unrar-*/
-unrar/unrar
 
 
 ### Python ###
