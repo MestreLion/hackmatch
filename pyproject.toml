@@ -53,6 +53,7 @@ dev = [
     "mypy >= 0.900",  # pyproject.toml
     "types-Pillow",
     "types-PyAutoGUI > 0.9.3.2",  # pyScreeze reexport fixes
+    "xdot",  # .dot file viewer for profiling data
 ]
 extra = [
     "pygame",  # to convert SDL2 key codes to PyAutoGui key names

@@ -15,6 +15,8 @@ PYTHON   ?= python3
 ENV_DIR  ?= venv
 ## PROF_DIR: Path to profiling dir, where .pstats and .dot files are generated
 PROF_DIR ?= profile
+## DOT_OPENER: executable name to open .dot files. 'xdg-open' for a desktop-registered app
+DOT_OPENER ?= xdot
 
 # Derived vars:
 # path to virtual environment bin dir
@@ -61,7 +63,7 @@ $(PROF_DIR)/.gitignore:
 $(dotgraph): $(venv)/gprof2dot $(PROF_DIR)/.gitignore
 	$(python) -m cProfile -o $(pstats) -m hackmatch -q --benchmark
 	$(venv)/gprof2dot -f pstats -o $@ -- $(pstats)
-	xdg-open $@
+	$(DOT_OPENER) $@
 
 ## - system-packages: apt-install system pre-dependencies `python3-{tk,dev,venv}`
 system-packages:
